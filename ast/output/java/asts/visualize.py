@@ -1,8 +1,8 @@
-# from graphviz import Source
-#
-# path = 'ast_0.dot'
-# s = Source.from_file(path)
-# s.view()
+from graphviz import Source
+
+path = 'ast_0.dot'
+s = Source.from_file(path)
+s.view()
 
 
 # from graphviz import Source
@@ -113,19 +113,19 @@ tree = ast.parse(source)
 g.generic_visit(tree)
 print(ast.dump(tree))
 
-body = [
-    ImportFrom(module='sklearn.linear_model', names=[alias(name='LogisticRegression', asname=None)], level=0),
-    ClassDef(name='LogisticRegressionModel', bases=[], keywords=[],
-             body=[
-                 FunctionDef(name='__init__', args=arguments(
-                     args=[arg(arg='self', annotation=None), arg(arg='train_inputs', annotation=None)], vararg=None,
-                     kwonlyargs=[], kw_defaults=[], kwarg=None, defaults=[]),
-                             body=[Assign(targets=[
-                                 Attribute(value=Name(id='self', ctx=Load()), attr='train_inputs', ctx=Store())],
-                                          value=Name(id='train_inputs', ctx=Load())),
-                                   Assign(targets=[
-                                       Attribute(value=Name(id='self', ctx=Load()), attr='model', ctx=Store())],
-                                          value=Call(func=Name(id='LogisticRegression', ctx=Load()), args=[],
-                                                     keywords=[keyword(arg='random_state', value=Num(n=0))]))],
-                             decorator_list=[], returns=None)],
-             decorator_list=[])]
+# body = [
+#     ImportFrom(module='sklearn.linear_model', names=[alias(name='LogisticRegression', asname=None)], level=0),
+#     ClassDef(name='LogisticRegressionModel', bases=[], keywords=[],
+#              body=[
+#                  FunctionDef(name='__init__', args=arguments(
+#                      args=[arg(arg='self', annotation=None), arg(arg='train_inputs', annotation=None)], vararg=None,
+#                      kwonlyargs=[], kw_defaults=[], kwarg=None, defaults=[]),
+#                              body=[Assign(targets=[
+#                                  Attribute(value=Name(id='self', ctx=Load()), attr='train_inputs', ctx=Store())],
+#                                           value=Name(id='train_inputs', ctx=Load())),
+#                                    Assign(targets=[
+#                                        Attribute(value=Name(id='self', ctx=Load()), attr='model', ctx=Store())],
+#                                           value=Call(func=Name(id='LogisticRegression', ctx=Load()), args=[],
+#                                                      keywords=[keyword(arg='random_state', value=Num(n=0))]))],
+#                              decorator_list=[], returns=None)],
+#              decorator_list=[])]
