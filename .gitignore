@@ -2,3 +2,5 @@
 temp.py
 conf
 *.json
+ast/code/*
+ast/output/*

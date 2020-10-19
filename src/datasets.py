@@ -1,11 +1,11 @@
 import json
-import pickle
 import time
 
 import pandas as pd
 import numpy as np
 import os
 import requests
+import subprocess
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -28,16 +28,18 @@ class GitMiner:
         response = self.session.get(commit.get('url'), headers=headers)
         commit = json.loads(response.text)
         changed_files = commit.get('files')
+        filenames = [file.get('filename') for file in changed_files]
         before_contents = []
         after_contents = []
         headers['accept'] = 'application/vnd.github.v3.raw'
         for file in changed_files:
             response = self.session.get(file.get('contents_url'), headers=headers)
             after_contents.append(response.text)
-            response = self.session.get(file.get('contents_url') + '&ref=' + commit.get('parents')[0].get('sha'), headers=headers)
+            response = self.session.get(file.get('contents_url') + '&ref=' + commit.get('parents')[0].get('sha'),
+                                        headers=headers)
             before_contents.append(response.text)
 
-        return list(zip(before_contents, after_contents))
+        return list(zip(filenames, before_contents, after_contents))
 
     def search_commit(self, commit_id):
         headers = {'content-type': 'application/json',
@@ -52,7 +54,6 @@ class GitMiner:
         headers = {'content-type': 'application/json',
                    'accept': 'application/vnd.github.v3.raw'}
         response = self.session.get(self.base_url + '/repos/' + repo_full_name + '/contents/', headers=headers)
-
 
     # def find_commits(self):
     #     headers = {'content-type': 'application/json',
@@ -129,7 +130,7 @@ def get_tse():
     return X[:11000], y[:11000], X[11000:], y[11000:]
 
 
-def get_data(s_index, e_index):
+def get_source_codes(s_index, e_index):
     df = pd.read_csv(data_path + '/rawdata.csv')
     commit_ids = df['commit_id'].tolist()[s_index:e_index]
     miner = GitMiner()
@@ -138,13 +139,34 @@ def get_data(s_index, e_index):
         contents[c] = miner.get_before_after_content(c)
         print('commit', c, 'source codes fetched!')
 
-    with open(data_path + '/source_codes.pickle', 'wb') as fp:
-        pickle.dump(contents, fp)
-
-    with open(data_path + '/source_codes.json', 'wb') as fp:
+    with open(data_path + '/source_codes_' + str(e_index) + '.json', 'w') as fp:
         json.dump(contents, fp)
 
 
-if __name__ == "__main__":
-    get_data(0, 100)
+def get_asts(filename):
+    empty_template = '{"message":"Not Found",' \
+                     '"documentation_url":"https://docs.github.com/rest/reference/repos#get-repository-content"}'
+    supported_files = ['py', 'java', 'c', 'cpp']
+    with open(os.path.join(data_path, filename), 'r') as fp:
+        commit_codes = json.load(fp)
+    for commit, codes in commit_codes.items():
+        for c in codes:
+            fname = c[0].split('/')[-1]
+            if c[1] == empty_template or not fname.split('.')[-1] in supported_files:
+                continue
+            if not os.path.exists(os.path.join(BASE_PATH, 'ast', 'code', commit)):
+                os.makedirs(os.path.join(BASE_PATH, 'ast', 'code', commit))
+            with open(os.path.join(BASE_PATH, 'ast', 'code', commit, c[0].split('/')[-1]), 'w') as fp:
+                fp.write(c[1])
 
+    command = './cli.sh parse --lang py,java,c,cpp --project ' + \
+              os.path.join(BASE_PATH, 'ast', 'code') + \
+              ' --output ' + os.path.join(BASE_PATH, 'ast', 'output') + \
+              ' --storage dot'
+    print(command)
+    subprocess.run(command, cwd=os.path.join(BASE_PATH, 'astminer-master-dev'), shell=True)
+
+
+if __name__ == "__main__":
+    # get_source_codes(0, 300)
+    get_asts('source_codes_300.json')
