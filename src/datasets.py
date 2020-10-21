@@ -55,66 +55,6 @@ class GitMiner:
                    'accept': 'application/vnd.github.v3.raw'}
         response = self.session.get(self.base_url + '/repos/' + repo_full_name + '/contents/', headers=headers)
 
-    # def find_commits(self):
-    #     headers = {'content-type': 'application/json',
-    #                'accept': 'application/vnd.github.cloak-preview'}
-    #     keys = []
-    #     ids = []
-    #     messages = []
-    #     for issue in self.issue_keys:
-    #         print(issue)
-    #         with open(join(path, 'auth.conf'), 'r') as file:
-    #             lines = file.readlines()
-    #         username = lines[0].split('\n')[0]
-    #         password = lines[1].split('\n')[0]
-    #         session = requests.Session()
-    #         session.auth = (username, password)
-    #         response = session.get(self.base_url + issue, headers=headers)
-    #         time.sleep(1)
-    #         response_dict = json.loads(response.text)
-    #         commits = response_dict.get('items')
-    #         for commit in commits:
-    #             if not self.remove_modify_commit(commit):
-    #                 keys.append(issue)
-    #                 ids.append(commit.get('sha'))
-    #                 messages.append(commit.get('commit').get('message'))
-    #                 with open(join(data_dir, 'issue_commit.txt'), 'a') as file:
-    #                     file.write(str(keys[-1]) + ', ' +
-    #                                str(ids[-1]) + ', ' +
-    #                                str(messages[-1]) + '\n')
-    #                 print('\tfor', issue, ' commit', ids[-1], ' added.')
-    #     commit_df = pd.DataFrame({'Issue key': keys,
-    #                               'SHA': ids,
-    #                               'Message': messages})
-    #     df = commit_df.join(self.df.set_index('Issue key'), on='Issue key')
-    #     return df
-    #
-    # @staticmethod
-    # def remove_modify_commit(commit):
-    #     headers = {'content-type': 'application/json',
-    #                'accept': 'application/vnd.github.v3.patch'}
-    #     url = commit.get('url')
-    #     with open(join(path, 'auth.conf'), 'r') as file:
-    #         lines = file.readlines()
-    #     username = lines[0].split('\n')[0]
-    #     password = lines[1].split('\n')[0]
-    #     session = requests.Session()
-    #     session.auth = (username, password)
-    #     response = session.get(url, headers=headers)
-    #     time.sleep(1)
-    #     if response.text == '':
-    #         return True
-    #     text = response.text.split('\n')
-    #     p = re.compile(', [0-9]+ deletion(s{0,1})\(-\)')
-    #     for line in text:
-    #         if bool(p.search(line)):
-    #             return True
-    #     return False
-
-
-class ASTExtractor:
-    pass
-
 
 def get_tse():
     df = pd.read_csv(data_path + '/rawdata.csv')
@@ -133,6 +73,7 @@ def get_tse():
 def get_source_codes(s_index, e_index):
     df = pd.read_csv(data_path + '/rawdata.csv')
     commit_ids = df['commit_id'].tolist()[s_index:e_index]
+
     miner = GitMiner()
     contents = dict()
     for c in commit_ids:
@@ -147,24 +88,32 @@ def get_asts(filename):
     empty_template = '{"message":"Not Found",' \
                      '"documentation_url":"https://docs.github.com/rest/reference/repos#get-repository-content"}'
     supported_files = ['py', 'java', 'c', 'cpp']
+
     with open(os.path.join(data_path, filename), 'r') as fp:
         commit_codes = json.load(fp)
-    for commit, codes in commit_codes.items():
-        for c in codes:
-            fname = c[0].split('/')[-1]
-            if c[1] == empty_template or not fname.split('.')[-1] in supported_files:
+
+    for commit, files in commit_codes.items():
+        ast_command = './cli.sh parse --lang py,java,c,cpp ' \
+                      '--project ' + os.path.join(BASE_PATH, 'ast', 'code', commit) + \
+                      ' --output ' + os.path.join(BASE_PATH, 'ast', 'output', commit) + \
+                      ' --storage dot'
+        for f in files:                     # f is a tuple (name, before content, after content)
+            fname = f[0].split('/')[-1]     # path/to/«file.py»
+            ftype = fname.split('.')[-1]
+            if f[1] == empty_template or ftype not in supported_files:
                 continue
             if not os.path.exists(os.path.join(BASE_PATH, 'ast', 'code', commit)):
                 os.makedirs(os.path.join(BASE_PATH, 'ast', 'code', commit))
-            with open(os.path.join(BASE_PATH, 'ast', 'code', commit, c[0].split('/')[-1]), 'w') as fp:
-                fp.write(c[1])
+            if not os.path.exists(os.path.join(BASE_PATH, 'ast', 'output', commit)):
+                os.makedirs(os.path.join(BASE_PATH, 'ast', 'output', commit))
 
-    command = './cli.sh parse --lang py,java,c,cpp --project ' + \
-              os.path.join(BASE_PATH, 'ast', 'code') + \
-              ' --output ' + os.path.join(BASE_PATH, 'ast', 'output') + \
-              ' --storage dot'
-    print(command)
-    subprocess.run(command, cwd=os.path.join(BASE_PATH, 'astminer-master-dev'), shell=True)
+            # write before content and extract AST
+            with open(os.path.join(BASE_PATH, 'ast', 'code', commit, fname + '_1.' + ftype), 'w') as fp:
+                fp.write(f[1])
+            # write after content and extract AST
+            with open(os.path.join(BASE_PATH, 'ast', 'code', commit, fname + '_2.' + ftype), 'w') as fp:
+                fp.write(f[2])
+        subprocess.run(ast_command, cwd=os.path.join(BASE_PATH, 'astminer-master-dev'), shell=True)
 
 
 if __name__ == "__main__":
