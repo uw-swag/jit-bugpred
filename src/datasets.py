@@ -1,6 +1,8 @@
 import ast
 import json
 import os
+import traceback
+
 import numpy as np
 from torch.utils.data import DataLoader
 
@@ -27,29 +29,32 @@ def get_asts(filename):
             if f[1] == empty_template or ftype not in supported_files:
                 continue
 
+            if commit not in ast_dict:
+                ast_dict[commit] = [(f[0],)]
+            else:
+                ast_dict[commit].append((f[0],))
+
+            before_ast = 'SYNTAX ERROR'
             try:
                 b_visitor = ASTVisitor()
                 b_tree = ast.parse(f[1])
                 b_visitor.visit(b_tree)
                 before_ast = b_visitor.get_ast()
-            except Exception as e:
-                print(commit, 'before')
-                print(e)
-                print()
-                continue
+            except:
+                print(commit, f[0], 'before')
 
+            ast_dict[commit][-1] += (before_ast,)
+
+            after_ast = 'SYNTAX ERROR'
             try:
                 a_visitor = ASTVisitor()
                 a_tree = ast.parse(f[2])
                 a_visitor.visit(a_tree)
                 after_ast = a_visitor.get_ast()
-            except Exception as e:
-                print(commit, 'after')
-                print(e)
-                print()
-                continue
+            except:
+                print(commit, f[0], 'after')
 
-            ast_dict[commit] = [before_ast, after_ast]
+            ast_dict[commit][-1] += (after_ast,)
 
     return ast_dict
 
@@ -183,5 +188,5 @@ class bAbIDataLoader(DataLoader):
 
 if __name__ == "__main__":
     ast_dict = get_asts('source_codes_1000.json')
-    with open(data_path + '/asts_1000.json', 'w') as fp:
+    with open(data_path + '/asts_1000_synerr.json', 'w') as fp:
         json.dump(ast_dict, fp)
