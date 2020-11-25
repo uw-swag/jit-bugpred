@@ -82,11 +82,8 @@ def get_asts(ast_filename, content_filename):
     with open(os.path.join(data_path, content_filename), 'r') as fp:
         commit_dict = json.load(fp)
 
-    # cnt = 0
+    to_delete = []
     for commit, files in ast_dict.iteritems():
-        # if cnt == 10:
-        #     break
-        # cnt += 1
         for i in xrange(len(files)):
             index = -1
             if files[i][1] == 'SYNTAX ERROR':
@@ -107,6 +104,8 @@ def get_asts(ast_filename, content_filename):
                     except Exception as e:
                         print commit, files[i][0], 'before'
                         print e
+                        to_delete.append(commit)
+                        break
 
             if files[i][2] == 'SYNTAX ERROR':
                 if index == -1:
@@ -127,6 +126,11 @@ def get_asts(ast_filename, content_filename):
                     except Exception as e:
                         print commit, files[i][0], 'after'
                         print e
+                        to_delete.append(commit)
+                        break
+
+    for c in to_delete:
+        ast_dict.pop(c)
 
     return ast_dict
 
