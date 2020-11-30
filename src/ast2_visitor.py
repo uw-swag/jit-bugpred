@@ -82,8 +82,8 @@ def get_asts(ast_filename, content_filename):
     with open(os.path.join(data_path, content_filename), 'r') as fp:
         commit_dict = json.load(fp)
 
-    to_delete = []
     for commit, files in ast_dict.iteritems():
+        to_delete = []
         for i in xrange(len(files)):
             index = -1
             if files[i][1] == 'SYNTAX ERROR':
@@ -104,8 +104,7 @@ def get_asts(ast_filename, content_filename):
                     except Exception as e:
                         print commit, files[i][0], 'before'
                         print e
-                        to_delete.append(commit)
-                        break
+                        to_delete.append(i)
 
             if files[i][2] == 'SYNTAX ERROR':
                 if index == -1:
@@ -126,11 +125,10 @@ def get_asts(ast_filename, content_filename):
                     except Exception as e:
                         print commit, files[i][0], 'after'
                         print e
-                        to_delete.append(commit)
-                        break
+                        to_delete.append(i)
 
-    for c in to_delete:
-        ast_dict.pop(c)
+        for idx in to_delete:
+            files.pop(idx)
 
     return ast_dict
 
@@ -146,9 +144,9 @@ if __name__ == "__main__":
 #     c.visit(tree)
 #     p = c.get_ast()
 #     print "\n"
-    ast_dict = get_asts('asts_600_synerr.json', 'source_codes_600.json')
+    ast_dict = get_asts('asts_1000_synerr.json', 'source_codes_1000.json')
     print 'asts fetched!'
     # thanks to
     # https://stackoverflow.com/questions/25203209/how-to-fix-json-dumps-error-utf8-codec-cant-decode-byte-0xe0-in-position-2
-    with open(data_path + '/asts_600.json', 'w') as fp:
+    with open(data_path + '/asts_1000.json', 'w') as fp:
         fp.write(json.dumps(ast_dict, encoding='latin1'))
