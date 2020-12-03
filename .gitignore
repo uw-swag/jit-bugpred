@@ -5,3 +5,5 @@ conf
 ast/code/*
 ast/output/*
 *.log
+venv
+__pycache__/
