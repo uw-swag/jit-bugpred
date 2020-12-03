@@ -92,9 +92,12 @@ class ASTDataset(Dataset):
         self.ast_dict = list(ast_dict.items())
         print('let\'s do it locally')
         self.tokenizer = AutoTokenizer.from_pretrained(data_path + '/codebert', local_files_only=True)
-        self.codebert = AutoModel.from_pretrained(data_path + '/codebert', output_hidden_states=True, local_files_only=True)
-#        self.tokenizer.save_pretrained(data_path + '/codebert')
-#        self.codebert.save_pretrained(data_path + '/codebert')
+        self.codebert = AutoModel.from_pretrained(data_path + '/codebert', output_hidden_states=True,
+                                                  local_files_only=True)
+        self.codebert.to(device)
+
+    #        self.tokenizer.save_pretrained(data_path + '/codebert')
+    #        self.codebert.save_pretrained(data_path + '/codebert')
 
     @staticmethod
     def get_adjacency_matrix(n_nodes, src, dst):
@@ -108,7 +111,6 @@ class ASTDataset(Dataset):
         # more alternatives at https://github.com/BramVanroy/bert-for-inference/blob/master/introduction-to-bert.ipynb
         # maybe not efficient
         # will initial_representation participate in BP?
-        self.codebert.to(device)
         self.codebert.eval()
         with torch.no_grad():
             initial_representations = torch.zeros(len(file_node_tokens), HIDDEN_SIZE)
@@ -133,21 +135,18 @@ class ASTDataset(Dataset):
             # file is a list of 3 elements: name, before, and after. before and after are lists of two things
             # node tokens and node edges. node tokens is a list of lists of node tokens (node -> type + token)
             if isinstance(file[1], str):    # for SYNTAX ERROR cases
-              continue
+                continue
 
             try:
-              b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
-              a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
+                b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
+                a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
             except ValueError:
-              print(file[1][1][0])
-              print(file[1][1][1])
-              print(file[2][1][0])
-              print(file[2][1][1])
-              continue
+                print(file[0], 'skipped -> 0 nodes!')
+                continue
 
-            if b_n_nodes > 2500 or a_n_nodes > 2500:
-              continue
-        
+            if b_n_nodes > 5000 or a_n_nodes > 5000:
+                continue
+
             before_tokens = self.get_embedding([' '.join(node) for node in file[1][0]])
             after_tokens = self.get_embedding([' '.join(node) for node in file[2][0]])
             before_adj = self.get_adjacency_matrix(b_n_nodes, file[1][1][0], file[1][1][1])
