@@ -3,6 +3,8 @@ import pickle
 import torch
 import torch.nn as nn
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 class LogisticRegressionModel:
     def __init__(self, train_inputs, train_labels, test_inputs, test_labels, save_dir, file_name):
@@ -42,10 +44,11 @@ class GatedGNN(nn.Module):
         # do we need dropout?
         # do we need batch normalization?
         h = x
-        h = torch.cat((h, torch.zeros(1, h.size(1))), 0)
-        ones = torch.ones(1, adj_matrix.size(0))
+        zeros = torch.zeros(1, h.size(1)).to(device)
+        h = torch.cat((h, zeros), 0)
+        ones = torch.ones(1, adj_matrix.size(0)).to(device)
         adj_matrix = torch.cat((adj_matrix, ones), 0)
-        zeros = torch.zeros(adj_matrix.size(0), 1)
+        zeros = torch.zeros(adj_matrix.size(0), 1).to(device)
         adj_matrix = torch.cat((adj_matrix, zeros), 1)
         for i in range(self.n_timesteps):
             # take care of the shape in the matrix multiplication.

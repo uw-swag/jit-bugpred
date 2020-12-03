@@ -1,3 +1,4 @@
+import pickle
 from _ast import AST
 import ast
 import json
@@ -144,9 +145,11 @@ if __name__ == "__main__":
 #     c.visit(tree)
 #     p = c.get_ast()
 #     print "\n"
-    ast_dict = get_asts('asts_1000_synerr.json', 'source_codes_1000.json')
+    index = '600'
+    ast_dict = get_asts('asts_' + index + '_synerr.json', 'source_codes_2000.json')
     print 'asts fetched!'
     # thanks to
     # https://stackoverflow.com/questions/25203209/how-to-fix-json-dumps-error-utf8-codec-cant-decode-byte-0xe0-in-position-2
-    with open(data_path + '/asts_1000.json', 'w') as fp:
+    with open(data_path + '/asts_' + index + '.json', 'w') as fp:
         fp.write(json.dumps(ast_dict, encoding='latin1'))
+        print 'file saved'
