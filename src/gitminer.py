@@ -46,7 +46,7 @@ class GitMiner:
                    'content-type': 'application/json',
                    'accept': 'application/vnd.github.cloak-preview'}
         response = self.session.get(self.base_url + '/search/commits?q=' + commit_id, headers=headers)
-        time.sleep(7)
+        time.sleep(1)
         response_dict = json.loads(response.text)
         return response_dict.get('items')[0]
 
@@ -70,4 +70,4 @@ def get_source_codes(s_index, e_index):
 
 
 if __name__ == "__main__":
-    get_source_codes(500, 2000)
+    get_source_codes(0, 200)

@@ -145,8 +145,8 @@ if __name__ == "__main__":
 #     c.visit(tree)
 #     p = c.get_ast()
 #     print "\n"
-    index = '600'
-    ast_dict = get_asts('asts_' + index + '_synerr.json', 'source_codes_2000.json')
+    index = '200'
+    ast_dict = get_asts('asts_' + index + '_synerr.json', 'source_codes_200.json')
     print 'asts fetched!'
     # thanks to
     # https://stackoverflow.com/questions/25203209/how-to-fix-json-dumps-error-utf8-codec-cant-decode-byte-0xe0-in-position-2

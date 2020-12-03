@@ -1,3 +1,4 @@
+print('here we are')
 import os
 
 import torch
@@ -8,20 +9,21 @@ from models import JITGNN
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 
 if __name__ == '__main__':
-    epochs = 2
+    epochs = 5
     batch_size = 1
     n_classes = 2
     hidden_size = 768
     message_size = 768
-    n_timesteps = 2
+    n_timesteps = 4
 
     filenames = ['asts_200.json']
 
     for e in range(epochs):
-        print('epoch', e)
+        print('epoch', e, '\n')
         model = JITGNN(n_classes, hidden_size, message_size, n_timesteps)
         criterion = nn.NLLLoss()
         optimizer = torch.optim.Adam(model.parameters())
@@ -37,6 +39,7 @@ if __name__ == '__main__':
                 print('commit', i)
                 data = dataset[i]
                 if data is None:
+                    print()
                     continue
                 for chngd_file_tnsr in data:
                     print('src tensor loaded')
@@ -50,5 +53,7 @@ if __name__ == '__main__':
                     total_loss += loss.item()
                     total_files += 1
                     print(loss.item())
+                    print()
 
-        print('epoch avg loss:', str(total_loss / total_files))
+        print('\nepoch avg loss:', str(total_loss / total_files), '\n')
+        torch.save(model, data_path + '/model.pt')

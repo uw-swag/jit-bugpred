@@ -7,3 +7,5 @@ ast/output/*
 *.log
 venv
 __pycache__/
+*.out
+data/codebert

@@ -90,8 +90,11 @@ class ASTDataset(Dataset):
         with open(filename, 'r') as fp:
             ast_dict = json.load(fp)
         self.ast_dict = list(ast_dict.items())
-        self.tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
-        self.codebert = AutoModel.from_pretrained("microsoft/codebert-base", output_hidden_states=True)
+        print('let\'s do it locally')
+        self.tokenizer = AutoTokenizer.from_pretrained(data_path + '/codebert', local_files_only=True)
+        self.codebert = AutoModel.from_pretrained(data_path + '/codebert', output_hidden_states=True, local_files_only=True)
+#        self.tokenizer.save_pretrained(data_path + '/codebert')
+#        self.codebert.save_pretrained(data_path + '/codebert')
 
     @staticmethod
     def get_adjacency_matrix(n_nodes, src, dst):
@@ -131,8 +134,20 @@ class ASTDataset(Dataset):
             # node tokens and node edges. node tokens is a list of lists of node tokens (node -> type + token)
             if isinstance(file[1], str):    # for SYNTAX ERROR cases
               continue
-            b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
-            a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
+
+            try:
+              b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
+              a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
+            except ValueError:
+              print(file[1][1][0])
+              print(file[1][1][1])
+              print(file[2][1][0])
+              print(file[2][1][1])
+              continue
+
+            if b_n_nodes > 2500 or a_n_nodes > 2500:
+              continue
+        
             before_tokens = self.get_embedding([' '.join(node) for node in file[1][0]])
             after_tokens = self.get_embedding([' '.join(node) for node in file[2][0]])
             before_adj = self.get_adjacency_matrix(b_n_nodes, file[1][1][0], file[1][1][1])
@@ -146,7 +161,7 @@ class ASTDataset(Dataset):
 
 
 if __name__ == "__main__":
-    get_asts(['source_codes_2000.json'], 500)
+    get_asts(['source_codes_200.json'], 0)
     print('Python 3 ASTs saved.')
     # with open(data_path + '/asts_300_synerr.json', 'r') as fp:
     #     ast_dict = json.load(fp)
