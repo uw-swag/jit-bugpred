@@ -1,14 +1,7 @@
-import os
-import pickle
-
-import pandas as pd
 import torch
 from torch import nn
-from torch.utils.data import DataLoader, SubsetRandomSampler
-import matplotlib.pyplot as plt
 from datasets import ASTDataset
 from models import JITGNN
-import numpy as np
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
