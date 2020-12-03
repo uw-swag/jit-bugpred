@@ -1,8 +1,12 @@
+import os
+
 import torch
 from torch import nn
 from datasets import ASTDataset
 from models import JITGNN
 
+BASE_PATH = os.path.dirname(os.path.dirname(__file__))
+data_path = os.path.join(BASE_PATH, 'data')
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -26,7 +30,7 @@ if __name__ == '__main__':
         total_files = 0
         model.train()
         for f in filenames:
-            dataset = ASTDataset(f)
+            dataset = ASTDataset(os.path.join(data_path, f))
             dataset_size = len(dataset)
 
             for i in range(len(dataset)):
