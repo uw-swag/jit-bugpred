@@ -1,4 +1,3 @@
-print('here we are')
 import os
 
 import torch
@@ -17,7 +16,7 @@ if __name__ == '__main__':
     batch_size = 1
     n_classes = 2
     hidden_size = 768
-    message_size = 768
+    message_size = 256
     n_timesteps = 4
 
     filenames = ['asts_200.json']

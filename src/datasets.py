@@ -92,12 +92,11 @@ class ASTDataset(Dataset):
         self.ast_dict = list(ast_dict.items())
         print('let\'s do it locally')
         self.tokenizer = AutoTokenizer.from_pretrained(data_path + '/codebert', local_files_only=True)
-        self.codebert = AutoModel.from_pretrained(data_path + '/codebert', output_hidden_states=True,
-                                                  local_files_only=True)
-        self.codebert.to(device)
+        self.codebert = AutoModel.from_pretrained(data_path + '/codebert', output_hidden_states=True, local_files_only=True)
+#        self.tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
+#        self.codebert = AutoModel.from_pretrained("microsoft/codebert-base", output_hidden_states=True)
 
-    #        self.tokenizer.save_pretrained(data_path + '/codebert')
-    #        self.codebert.save_pretrained(data_path + '/codebert')
+        self.codebert.to(device)
 
     @staticmethod
     def get_adjacency_matrix(n_nodes, src, dst):
@@ -118,7 +117,13 @@ class ASTDataset(Dataset):
                 hidden_states = self.codebert(self.tokenizer
                                               .encode(node_token, return_tensors='pt')
                                               .to(device))[2]
-                initial_representations[i, :] = torch.mean(hidden_states[-1], dim=1).squeeze()
+                try:
+                    initial_representations[i, :] = torch.mean(hidden_states[-1], dim=1).squeeze()
+                except RuntimeError as e:
+                    print('***************')
+                    print(i, node_token, len(node_token.split())
+                    print(len(hidden_states))
+                    print(hidden_states[-1].shape)
 
         return initial_representations
 
@@ -144,7 +149,7 @@ class ASTDataset(Dataset):
                 print(file[0], 'skipped -> 0 nodes!')
                 continue
 
-            if b_n_nodes > 5000 or a_n_nodes > 5000:
+            if b_n_nodes > 3000 or a_n_nodes > 3000:
                 continue
 
             before_tokens = self.get_embedding([' '.join(node) for node in file[1][0]])
