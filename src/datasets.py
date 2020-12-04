@@ -146,7 +146,7 @@ class ASTDataset(Dataset):
                 print(file[0], 'skipped -> 0 nodes!')
                 continue
 
-            if b_n_nodes > 3000 or a_n_nodes > 3000:
+            if b_n_nodes > 5000 or a_n_nodes > 5000:
                 continue
 
             before_tokens = self.get_embedding([' '.join(node) for node in file[1][0]])
