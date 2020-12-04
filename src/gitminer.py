@@ -9,8 +9,9 @@ data_path = os.path.join(BASE_PATH, 'data')
 
 
 class GitMiner:
-    def __init__(self):
+    def __init__(self, max_n_changed_files):
         self.base_url = 'https://api.github.com'
+        self.max_n_files = max_n_changed_files
         with open(os.path.join(BASE_PATH, 'conf', 'auth.conf'), 'r') as file:
             lines = file.readlines()
         self.token = lines[2].split('\n')[0]
@@ -27,7 +28,8 @@ class GitMiner:
         response = self.session.get(commit.get('url'), headers=headers)
         commit = json.loads(response.text)
         changed_files = commit.get('files')
-        print('#files:', len(changed_files))
+        if len(changed_files) > self.max_n_files:
+            return None
         filenames = [file.get('filename') for file in changed_files]
         before_contents = []
         after_contents = []
@@ -46,28 +48,36 @@ class GitMiner:
                    'content-type': 'application/json',
                    'accept': 'application/vnd.github.cloak-preview'}
         response = self.session.get(self.base_url + '/search/commits?q=' + commit_id, headers=headers)
-        time.sleep(1)
+        time.sleep(5)
         response_dict = json.loads(response.text)
         return response_dict.get('items')[0]
 
 
-def get_source_codes(s_index, e_index):
+def get_source_codes():
     df = pd.read_csv(data_path + '/rawdata.csv')
-    commit_ids = df['commit_id'].tolist()[s_index:e_index]
+    df_dict = df[['commit_id', 'buggy']].sample(frac=1).set_index('commit_id').to_dict()['buggy']
+    # df = df[df['buggy']][['commit_id', 'buggy']].sample(frac=1)     # SELECT commit_id, buggy WHERE buggy='TRUE';
 
-    miner = GitMiner()
+    miner = GitMiner(max_n_changed_files=1)
+
     contents = dict()
-    for c in commit_ids:
-        content = miner.get_before_after_content(c)
-        if content is None:
-            print('commit', c, 'skipped!!!!!!!!!!!!')
+    buggy_cntr = {'True': 0, 'False': 0}
+    ratio = 0.25
+    for cmtid, buggy in df_dict.items():
+        if not buggy and buggy_cntr['True'] < buggy_cntr['False'] * ratio:
             continue
-        contents[c] = content
-        print('commit', c, 'source codes fetched!')
+        content = miner.get_before_after_content(cmtid)
+        if content is None:
+            print('\t\tcommit', cmtid, 'skipped!')
+            continue
+        contents[cmtid] = content
+        buggy_cntr[str(buggy)] += 1
+        print('commit', cmtid, 'source codes fetched!')
 
-    with open(data_path + '/source_codes_' + str(e_index) + '.json', 'w') as fp:
+    with open(data_path + '/source_codes_' + str(ratio) + '.json', 'w') as fp:
         json.dump(contents, fp)
+    print('buggy counter:', buggy_cntr)
 
 
 if __name__ == "__main__":
-    get_source_codes(0, 200)
+    get_source_codes()
