@@ -115,15 +115,12 @@ class ASTDataset(Dataset):
             initial_representations = torch.zeros(len(file_node_tokens), HIDDEN_SIZE)
             for i, node_token in enumerate(file_node_tokens):
                 hidden_states = self.codebert(self.tokenizer
-                                              .encode(node_token, return_tensors='pt')
+                                              .encode(node_token, return_tensors='pt', max_length=512)
                                               .to(device))[2]
                 try:
                     initial_representations[i, :] = torch.mean(hidden_states[-1], dim=1).squeeze()
                 except RuntimeError as e:
-                    print('***************')
-                    print(i, node_token, len(node_token.split())
-                    print(len(hidden_states))
-                    print(hidden_states[-1].shape)
+                    print(e)
 
         return initial_representations
 
