@@ -1,4 +1,3 @@
-import pickle
 from _ast import AST
 import ast
 import json
