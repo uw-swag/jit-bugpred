@@ -64,14 +64,14 @@ def get_asts(filenames, start):
 
             n_commits += 1
 
-            if n_commits == 500:
-                print(len(ast_dict))
-                start += n_commits
-                with open(data_path + '/asts_' + str(start) + '_synerr.json', 'w') as fp:
-                    json.dump(ast_dict, fp)
-                print('/asts_' + str(start) + '_synerr.json saved.')
-                ast_dict = dict()
-                n_commits = 0
+#            if n_commits == 500:
+#                print(len(ast_dict))
+#                start += n_commits
+#                with open(data_path + '/asts_' + str(start) + '_synerr.json', 'w') as fp:
+#                    json.dump(ast_dict, fp)
+#                print('/asts_' + str(start) + '_synerr.json saved.')
+#                ast_dict = dict()
+#                n_commits = 0
 
     print(len(ast_dict))
     start += n_commits
@@ -162,7 +162,7 @@ class ASTDataset(Dataset):
 
 
 if __name__ == "__main__":
-    get_asts(['source_codes_200.json'], 0)
+    get_asts(['source_codes_0.25.json'], 0)
     print('Python 3 ASTs saved.')
     # with open(data_path + '/asts_300_synerr.json', 'r') as fp:
     #     ast_dict = json.load(fp)

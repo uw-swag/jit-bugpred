@@ -9,3 +9,5 @@ venv
 __pycache__/
 *.out
 data/codebert
+trained_models/
+*.pt

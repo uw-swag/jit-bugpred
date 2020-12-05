@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=12G
-#SBATCH --time=0-01:00
+#SBATCH --time=0-12:00
 
 #module load python/3.6
 #virtualenv --no-download $SLURM_TMPDIR/venv

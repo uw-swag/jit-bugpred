@@ -17,9 +17,9 @@ if __name__ == '__main__':
     n_classes = 2
     hidden_size = 768
     message_size = 256
-    n_timesteps = 4
+    n_timesteps = 5
 
-    filenames = ['asts_200.json']
+    filenames = ['asts_1131.json']
 
     for e in range(epochs):
         print('epoch', e, '\n')
@@ -54,5 +54,6 @@ if __name__ == '__main__':
                     print(loss.item())
                     print()
 
-        print('\nepoch avg loss:', str(total_loss / total_files), '\n')
-        torch.save(model, data_path + '/model.pt')
+        print('\nepoch avg loss:', str(total_loss / total_files))
+        torch.save(model, BASE_PATH + '/trained_models/model.pt')
+        print('* model saved.\n')
