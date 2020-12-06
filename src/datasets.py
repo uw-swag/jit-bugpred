@@ -88,9 +88,6 @@ class ASTDataset(Dataset):
             after_adj = self.get_adjacency_matrix(a_n_nodes, file[2][1][0], file[2][1][1])
             training_data.append([before_tokens, before_adj, after_tokens, after_adj, label])
 
-        if self.transform is not None:
-            training_data = self.transform(training_data)
-
         return training_data
 
 

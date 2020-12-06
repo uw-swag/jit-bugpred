@@ -1,8 +1,13 @@
+import os
+
 import torch
 from torch import nn
 
 from models import JITGNN
-from train import train
+from train import train, plot_training, test, resume_training
+
+BASE_PATH = os.path.dirname(os.path.dirname(__file__))
+
 
 if __name__ == '__main__':
     epochs = 5
@@ -11,10 +16,21 @@ if __name__ == '__main__':
     hidden_size = 768
     message_size = 256
     n_timesteps = 4
-    filenames = ['asts_200.json']
+    train_filename = 'asts_200.json'
 
-    model = JITGNN(n_classes, hidden_size, message_size, n_timesteps)
-    criterion = nn.NLLLoss()
+    model = JITGNN(hidden_size, message_size, n_timesteps)
+    criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters())
 
-    train(model, optimizer, criterion, epochs, n_classes, hidden_size, message_size, n_timesteps, filenames)
+    # training
+    stats = train(model, optimizer, criterion, epochs, train_filename, val_filename)
+    plot_training(stats)
+
+    # resume training
+    checkpoint = torch.load('checkpoint.pt')
+    stats = resume_training(checkpoint, model, optimizer, criterion, epochs, train_filename, val_filename)
+    plot_training(stats)
+
+    # testing
+    model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
+    test(model, test_filename)

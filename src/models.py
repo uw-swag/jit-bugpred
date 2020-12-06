@@ -60,11 +60,14 @@ class GatedGNN(nn.Module):
 
 
 class JITGNN(nn.Module):
-    def __init__(self, n_classes, hidden_size, message_size, n_timesteps):
+    def __init__(self, hidden_size, message_size, n_timesteps):
         super(JITGNN, self).__init__()
         self.ggnn = GatedGNN(hidden_size, message_size, n_timesteps)
-        self.fc = nn.Linear(2 * hidden_size, n_classes)
-        self.softmax = nn.LogSoftmax()  # be careful about the loss function. It's LogSoftmax. Loss should be NLLLoss
+        self.fc1 = nn.Linear(2 * hidden_size, 128)
+        self.fc2 = nn.Linear(128, 1)
+        self.dropout = nn.Dropout(0.2)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()  # be careful about the loss function. It's LogSoftmax. Loss should be NLLLoss
 
     def forward(self, b_x, b_adj, a_x, a_adj):
         # consider attention. maybe instead of supernode
@@ -73,5 +76,11 @@ class JITGNN(nn.Module):
         a_node_embeddings = self.ggnn(a_x, a_adj)
         a_supernode = a_node_embeddings[-1, :]
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
-        return self.softmax(self.fc(supernodes))
+
+        hidden = self.fc1(supernodes)
+        hidden = self.relu(hidden)
+        hidden = self.dropout(hidden)
+        output = self.fc2(hidden)
+        output = self.sigmoid(output)
+        return output
 
