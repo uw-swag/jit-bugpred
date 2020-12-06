@@ -66,7 +66,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                 model = model.to(device)
                 output = model(file_tensors[0].to(device), file_tensors[1].to(device),
                                file_tensors[2].to(device), file_tensors[3].to(device))
-                loss = criterion(output, torch.LongTensor([file_tensors[4]]).to(device))
+                loss = criterion(output, torch.Tensor([file_tensors[4]]).to(device))
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
@@ -75,16 +75,16 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                 y_true.append(file_tensors[4])
                 n_files += 1
 
-                if i % display_every == display_every - 1:
+                if n_files % display_every == display_every - 1:
                     print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
-                        (i + 1), len(train_dataset), loss.item()))
+                        n_files, len(train_dataset), loss.item()))
 
         print('\nepoch duration: {}'.format(time_since(start)))
 
         training_loss = total_loss / n_files
         _, _, thresholds, training_auc = evaluate(y_true, y_scores)
         print('\n<==== training loss = {:.4f} ====>'.format(training_loss))
-        print('metrics: \tAUC={}\tthresholds={}\n'.format(training_auc, thresholds[:20]))
+        print('metrics: AUC={}\t\tthresholds={}\n'.format(training_auc, thresholds[:20]))
 
         all_training_losses.append(training_loss)
         all_training_aucs.append(training_auc)
@@ -104,7 +104,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                     model = model.to(device)
                     output = model(file_tensors[0].to(device), file_tensors[1].to(device),
                                    file_tensors[2].to(device), file_tensors[3].to(device))
-                    loss = criterion(output, torch.LongTensor([file_tensors[4]]).to(device))
+                    loss = criterion(output, torch.Tensor([file_tensors[4]]).to(device))
                     total_loss += loss.item()
 
                     y_scores.append(output.item())
@@ -114,7 +114,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         val_loss = total_loss / n_files
         _, _, thresholds, val_auc = evaluate(y_true, y_scores)
         print('\n<==== validation loss = {:.4f} ====>'.format(val_loss))
-        print('metrics: \tAUC={}\tthresholds={}\n'.format(val_auc, thresholds[:20]))
+        print('metrics: AUC={}\t\tthresholds={}\n'.format(val_auc, thresholds[:20]))
 
         if len(all_val_aucs) == 0 or val_auc > max(all_val_aucs):
             torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))

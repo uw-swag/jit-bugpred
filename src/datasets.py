@@ -23,7 +23,6 @@ class ASTDataset(Dataset):
         with open(filename, 'r') as fp:
             ast_dict = json.load(fp)
         self.ast_dict = list(ast_dict.items())
-        print('let\'s do it locally')
         self.tokenizer = AutoTokenizer.from_pretrained(data_path + '/codebert', local_files_only=True)
         self.codebert = AutoModel.from_pretrained(data_path + '/codebert', output_hidden_states=True, local_files_only=True)
 #        self.tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
@@ -48,7 +47,7 @@ class ASTDataset(Dataset):
             initial_representations = torch.zeros(len(file_node_tokens), HIDDEN_SIZE)
             for i, node_token in enumerate(file_node_tokens):
                 hidden_states = self.codebert(self.tokenizer
-                                              .encode(node_token, return_tensors='pt', max_length=512)
+                                              .encode(node_token, return_tensors='pt', max_length=512, truncation=True)
                                               .to(device))[2]
                 try:
                     initial_representations[i, :] = torch.mean(hidden_states[-1], dim=1).squeeze()
