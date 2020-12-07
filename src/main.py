@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from models import JITGNN
-from train import train, plot_training, test, resume_training
+from train import train, test, resume_training
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 
@@ -16,7 +16,8 @@ if __name__ == '__main__':
     hidden_size = 768
     message_size = 256
     n_timesteps = 4
-    train_filename = 'asts_200.json'
+    train_filename = 'asts_1131_train.json'
+    val_filename = 'asts_1131_val.json'
 
     model = JITGNN(hidden_size, message_size, n_timesteps)
     criterion = nn.BCELoss()
@@ -24,13 +25,13 @@ if __name__ == '__main__':
 
     # training
     stats = train(model, optimizer, criterion, epochs, train_filename, val_filename)
-    plot_training(stats)
+    # plot_training(stats)
 
     # resume training
-    checkpoint = torch.load('checkpoint.pt')
-    stats = resume_training(checkpoint, model, optimizer, criterion, epochs, train_filename, val_filename)
-    plot_training(stats)
+    # checkpoint = torch.load('checkpoint.pt')
+    # stats = resume_training(checkpoint, model, optimizer, criterion, epochs, train_filename, val_filename)
+    # plot_training(stats)
 
     # testing
-    model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
-    test(model, test_filename)
+    # model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
+    # test(model, test_filename)

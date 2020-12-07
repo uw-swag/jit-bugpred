@@ -3,7 +3,7 @@
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=12G
-#SBATCH --time=0-12:00
+#SBATCH --time=0-24:00
 
 #module load python/3.6
 #virtualenv --no-download $SLURM_TMPDIR/venv
@@ -18,5 +18,5 @@
 
 source venv/bin/activate
 which python
-#CUDA_LAUNCH_BLOCKING=1 python -u src/train.py
-python -u src/train.py
+#CUDA_LAUNCH_BLOCKING=1 python -u src/main.py
+python -u src/main.py

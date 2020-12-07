@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from datasets import ASTDataset
 from metrics import roc_auc
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
@@ -82,9 +82,9 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         print('\nepoch duration: {}'.format(time_since(start)))
 
         training_loss = total_loss / n_files
-        _, _, thresholds, training_auc = evaluate(y_true, y_scores)
+        _, _, _, training_auc = evaluate(y_true, y_scores)
         print('\n<==== training loss = {:.4f} ====>'.format(training_loss))
-        print('metrics: AUC={}\t\tthresholds={}\n'.format(training_auc, thresholds[:20]))
+        print('metrics: AUC={}\n'.format(training_auc))
 
         all_training_losses.append(training_loss)
         all_training_aucs.append(training_auc)
@@ -112,9 +112,9 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                     n_files += 1
 
         val_loss = total_loss / n_files
-        _, _, thresholds, val_auc = evaluate(y_true, y_scores)
+        _, _, _, val_auc = evaluate(y_true, y_scores)
         print('\n<==== validation loss = {:.4f} ====>'.format(val_loss))
-        print('metrics: AUC={}\t\tthresholds={}\n'.format(val_auc, thresholds[:20]))
+        print('metrics: AUC={}\n'.format(val_auc))
 
         if len(all_val_aucs) == 0 or val_auc > max(all_val_aucs):
             torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
@@ -163,8 +163,8 @@ def test(model, test_filename):
                 y_true.append(file_tensors[4])
                 n_files += 1
 
-    _, _, thresholds, auc = evaluate(y_true, y_scores)
-    print('metrics: \tAUC={}\tthresholds={}\n'.format(auc, thresholds[:20]))
+    _, _, _, auc = evaluate(y_true, y_scores)
+    print('metrics: AUC={}\n'.format(auc))
 
     print('testing finished')
 
@@ -187,24 +187,24 @@ def resume_training(checkpoint, model, optimizer, criterion, epochs, train_filen
     return stats
 
 
-def plot_training(stats):
-    all_training_aucs, all_training_losses, all_val_aucs, all_val_losses = stats
-
-    plt.figure()
-    plt.plot(all_training_losses)
-    plt.plot(all_val_losses)
-    plt.title('Loss')
-    plt.ylabel('Binary Cross Entropy')
-    plt.xlabel('Epochs')
-    plt.legend(['training loss', 'validation loss'], loc='upper right')
-
-    plt.figure()
-    plt.plot(all_training_aucs)
-    plt.plot(all_val_aucs)
-    plt.title('Performance')
-    plt.ylabel('AUC')
-    plt.xlabel('Epochs')
-    plt.legend(['training auc', 'validation auc'], loc='lower right')
+# def plot_training(stats):
+#     all_training_aucs, all_training_losses, all_val_aucs, all_val_losses = stats
+#
+#     plt.figure()
+#     plt.plot(all_training_losses)
+#     plt.plot(all_val_losses)
+#     plt.title('Loss')
+#     plt.ylabel('Binary Cross Entropy')
+#     plt.xlabel('Epochs')
+#     plt.legend(['training loss', 'validation loss'], loc='upper right')
+#
+#     plt.figure()
+#     plt.plot(all_training_aucs)
+#     plt.plot(all_val_aucs)
+#     plt.title('Performance')
+#     plt.ylabel('AUC')
+#     plt.xlabel('Epochs')
+#     plt.legend(['training auc', 'validation auc'], loc='lower right')
 
 
 if __name__ == '__main__':
