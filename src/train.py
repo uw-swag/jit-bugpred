@@ -81,6 +81,13 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
 
         print('\nepoch duration: {}'.format(time_since(start)))
 
+        torch.save({
+            'epoch': e + 1 + so_far,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict()
+        }, os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
+        print('* checkpoint saved.\n')
+
         training_loss = total_loss / n_files
         _, _, _, training_auc = evaluate(y_true, y_scores)
         print('\n<==== training loss = {:.4f} ====>'.format(training_loss))
@@ -127,15 +134,12 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         all_val_aucs.append(val_auc)
 
         torch.save({
-            'epoch': e + 1 + so_far,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
             'all_training_losses': all_training_losses,
             'all_training_aucs': all_training_aucs,
             'all_val_losses': all_val_losses,
             'all_val_aucs': all_val_aucs,
-        }, 'checkpoint.pt')
-        print('* checkpoint saved.\n')
+        }, os.path.join(BASE_PATH, 'trained_models/stats.pt'))
+        print('* stats saved.\n')
 
     print('\ntraining finished')
     return all_training_aucs, all_training_losses, all_val_aucs, all_val_losses
@@ -169,7 +173,7 @@ def test(model, test_filename):
     print('testing finished')
 
 
-def resume_training(checkpoint, model, optimizer, criterion, epochs, train_filename, val_filename):
+def resume_training(checkpoint, stats, model, optimizer, criterion, epochs, train_filename, val_filename):
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     for state in optimizer.state.values():
@@ -178,10 +182,10 @@ def resume_training(checkpoint, model, optimizer, criterion, epochs, train_filen
                 state[k] = v.to(device)
     so_far = checkpoint['epoch']
     resume = {
-        'all_training_losses': checkpoint['all_training_losses'],
-        'all_training_accs': checkpoint['all_training_accs'],
-        'all_val_losses': checkpoint['all_val_losses'],
-        'all_val_accs': checkpoint['all_val_accs']
+        'all_training_losses': stats['all_training_losses'],
+        'all_training_accs': stats['all_training_accs'],
+        'all_val_losses': stats['all_val_losses'],
+        'all_val_accs': stats['all_val_accs']
     }
     stats = train(model, optimizer, criterion, epochs, train_filename, val_filename, so_far, resume)
     return stats

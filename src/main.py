@@ -24,12 +24,13 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters())
 
     # training
-    stats = train(model, optimizer, criterion, epochs, train_filename, val_filename)
+    # stats = train(model, optimizer, criterion, epochs, train_filename, val_filename)
     # plot_training(stats)
 
     # resume training
-    # checkpoint = torch.load('checkpoint.pt')
-    # stats = resume_training(checkpoint, model, optimizer, criterion, epochs, train_filename, val_filename)
+    checkpoint = torch.load(os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
+    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
+    stats = resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, train_filename, val_filename)
     # plot_training(stats)
 
     # testing

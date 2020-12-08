@@ -67,7 +67,7 @@ class JITGNN(nn.Module):
         self.fc2 = nn.Linear(128, 1)
         self.dropout = nn.Dropout(0.2)
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()  # be careful about the loss function. It's LogSoftmax. Loss should be NLLLoss
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, b_x, b_adj, a_x, a_adj):
         # consider attention. maybe instead of supernode
