@@ -1,8 +1,6 @@
 import os
-
 import torch
 from torch import nn
-
 from models import JITGNN
 from train import train, test, resume_training
 
@@ -10,7 +8,7 @@ BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 
 
 if __name__ == '__main__':
-    epochs = 5
+    epochs = 4
     batch_size = 1
     n_classes = 2
     hidden_size = 768
@@ -28,8 +26,11 @@ if __name__ == '__main__':
     # plot_training(stats)
 
     # resume training
+    print('resume training')
     checkpoint = torch.load(os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
-    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
+    print('checkpoint loaded.')
+    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
+    print('stats loaded.')
     stats = resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, train_filename, val_filename)
     # plot_training(stats)
 

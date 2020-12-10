@@ -183,10 +183,11 @@ def resume_training(checkpoint, stats, model, optimizer, criterion, epochs, trai
     so_far = checkpoint['epoch']
     resume = {
         'all_training_losses': stats['all_training_losses'],
-        'all_training_accs': stats['all_training_accs'],
+        'all_training_aucs': stats['all_training_aucs'],
         'all_val_losses': stats['all_val_losses'],
-        'all_val_accs': stats['all_val_accs']
+        'all_val_aucs': stats['all_val_aucs']
     }
+    print('all set ...')
     stats = train(model, optimizer, criterion, epochs, train_filename, val_filename, so_far, resume)
     return stats
 
