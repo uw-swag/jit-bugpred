@@ -3,7 +3,9 @@
 #SBATCH --gres=gpu:v100:1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=12G
-#SBATCH --time=3-00:00
+#SBATCH --time=3-00:00:00
+#SBATCH --mail-user=hosseinkeshavarz1997@gmail.com
+#SBATCH --mail-type=ALL
 
 #module load python/3.6
 #virtualenv --no-download $SLURM_TMPDIR/venv

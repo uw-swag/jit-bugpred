@@ -29,7 +29,7 @@ if __name__ == '__main__':
     print('resume training')
     checkpoint = torch.load(os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
     print('checkpoint loaded.')
-    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
+    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
     print('stats loaded.')
     stats = resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, train_filename, val_filename)
     # plot_training(stats)

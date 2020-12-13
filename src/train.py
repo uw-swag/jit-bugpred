@@ -44,7 +44,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
 
     train_dataset = ASTDataset(os.path.join(data_path, train_filename))
     val_dataset = ASTDataset(os.path.join(data_path, val_filename))
-    display_every = len(train_dataset) // 100
+    # display_every = len(train_dataset) // 100
 
     print('training')
     for e in range(epochs):
@@ -75,7 +75,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                 y_true.append(file_tensors[4])
                 n_files += 1
 
-                if n_files % display_every == display_every - 1:
+                if file_tensors[4]:
                     print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
                         n_files, len(train_dataset), loss.item()))
 
@@ -86,12 +86,12 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict()
         }, os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
-        print('* checkpoint saved.\n')
+        print('* checkpoint saved.')
 
         training_loss = total_loss / n_files
         _, _, _, training_auc = evaluate(y_true, y_scores)
         print('\n<==== training loss = {:.4f} ====>'.format(training_loss))
-        print('metrics: AUC={}\n'.format(training_auc))
+        print('metrics: AUC={}'.format(training_auc))
 
         all_training_losses.append(training_loss)
         all_training_aucs.append(training_auc)
@@ -120,7 +120,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
 
         val_loss = total_loss / n_files
         _, _, _, val_auc = evaluate(y_true, y_scores)
-        print('\n<==== validation loss = {:.4f} ====>'.format(val_loss))
+        print('<==== validation loss = {:.4f} ====>'.format(val_loss))
         print('metrics: AUC={}\n'.format(val_auc))
 
         if len(all_val_aucs) == 0 or val_auc > max(all_val_aucs):
