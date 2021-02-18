@@ -11,3 +11,6 @@ __pycache__/
 data/codebert
 trained_models/
 *.pt
+gumtree-3.0.0/*.py
+gumtree-3.0.0/*.png
+gumtree-3.0.0/*.dot
