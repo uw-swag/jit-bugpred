@@ -9,8 +9,13 @@ venv
 __pycache__/
 *.out
 data/codebert
+data/src
 trained_models/
 *.pt
 gumtree-3.0.0/*.py
 gumtree-3.0.0/*.png
 gumtree-3.0.0/*.dot
+notebooks/*.py
+notebooks/*.png
+notebooks/*.dot
+notebooks/.ipynb_checkpoints
