@@ -1,7 +1,9 @@
 import json
+import math
 import os
 import re
 import subprocess
+import time
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -22,17 +24,23 @@ class GumTreeDiff:
             file.write(b_content)
         with open(a_file, 'w') as file:
             file.write(a_content)
-
-        result = subprocess.run([self.bin_path, 'dotdiff', b_file, a_file], stdout=subprocess.PIPE)
-
-        # dotfile = os.path.join(self.src_dir, 'diff.dot')
-        # with open(dotfile, 'w') as file:
-        #     file.write(result.stdout.decode('utf-8'))
-
-        return result.stdout.decode('utf-8')
+        # try:
+        # result = subprocess.run([self.bin_path, 'dotdiff', b_file, a_file],
+        #                         check=True,
+        #                         stdout=subprocess.PIPE,
+        #                         stderr=subprocess.STDOUT)
+        command = subprocess.Popen([self.bin_path, 'dotdiff', b_file, a_file],
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
+        output, error = command.communicate()
+        if error.decode('utf-8'):
+            return None
+        return output.decode('utf-8')
 
     def get_dotfiles(self, file):
         dot = self.get_diff(file[0], file[1], file[2])
+        if dot is None:
+            raise SyntaxError()
         lines = dot.splitlines()
         dotfiles = {
             'before': [],
@@ -57,8 +65,8 @@ class SubTreeExtractor:
         self.dot = dot
         self.red_nodes = list()
         self.node_dict = dict()
-        self.from_to = dict()       # mapping from src nodes to list of their dst nodes.
-        self.to_from = dict()       # mapping from dst nodes to list of their src nodes.
+        self.from_to = dict()  # mapping from src nodes to list of their dst nodes.
+        self.to_from = dict()  # mapping from dst nodes to list of their src nodes.
         self.subtree_nodes = set()
         self.subtree_edges = set()
 
@@ -96,7 +104,6 @@ class SubTreeExtractor:
 
             else:
                 print(line, end='\t')
-        print()
 
     def extract_subtree(self):
         self.read_ast()
@@ -114,6 +121,16 @@ class SubTreeExtractor:
                         self.subtree_nodes.add(d)
                         self.subtree_edges.add((s, d))
 
+        vs = list(self.subtree_nodes)
+        es = list(self.subtree_edges)
+        features = [[self.node_dict[node_id]] for node_id in vs]
+        edges = [[], []]
+        for src, dst in es:
+            edges[0].append(vs.index(src) + 1)
+            edges[1].append(vs.index(dst) + 1)
+
+        return features, edges
+
     def generate_dotfile(self):
         content = 'digraph G {\nnode [style=filled];\nsubgraph cluster_dst {\n'
         for node in self.subtree_nodes:
@@ -128,19 +145,47 @@ class SubTreeExtractor:
             file.write(content)
 
 
+def time_since(since):
+    now = time.time()
+    s = now - since
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '{} min {:.2f} sec'.format(m, s)
+
+
 def store_subtrees(source_codes):
     gumtree = GumTreeDiff()
     with open(os.path.join(data_path, source_codes), 'r') as fp:
         commit_codes = json.load(fp)
+    dataset_start = time.time()
+    errors = 0
+    ast_dict = dict()
     for cid, files in commit_codes.items():
+        commit_start = time.time()
         for f in files:
-            b_dot, a_dot = gumtree.get_dotfiles(f)
+            try:
+                b_dot, a_dot = gumtree.get_dotfiles(f)
+            except SyntaxError:
+                print('\t\t\t\tsource code contains syntax error. PASS!')
+                errors += 1
+                continue
             subtree = SubTreeExtractor(b_dot)
             b_subtree = subtree.extract_subtree()
             subtree = SubTreeExtractor(a_dot)
-            subtree.generate_dotfile()
             a_subtree = subtree.extract_subtree()
-            subtree.generate_dotfile()
+
+            if cid not in ast_dict:
+                ast_dict[cid] = [(f[0], b_subtree, a_subtree)]
+            else:
+                ast_dict[cid].append((f[0], b_subtree, a_subtree))
+
+        print('commit {} subtrees collected in {}.'.format(cid[:7], time_since(commit_start)))
+    print('\nall {} commit trees extracted in {}'.format(len(commit_codes), time_since(dataset_start)))
+    print('{} files passed due to error'.format(errors))
+
+    with open(os.path.join(data_path, 'subtrees.json'), 'w') as fp:
+        json.dump(ast_dict, fp)
+    print('\n** subtrees.json saved. **')
 
 
 if __name__ == '__main__':

@@ -63,7 +63,7 @@ class ASTDataset(Dataset):
         commit = self.ast_dict[item]
         label = 1 if self.label_dict[commit[0]] else 0
         training_data = []
-        if len(commit[1]) > 5:
+        if len(commit[1]) > 5:      # ignore commits with more than 5 changed files.
             return None
         for file in commit[1]:
             # file is a list of 3 elements: name, before, and after. before and after are lists of two things
@@ -72,6 +72,7 @@ class ASTDataset(Dataset):
                 continue
 
             try:
+                # find the number of nodes from the max index of nodes in source and dest lists in edges.
                 b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
                 a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
             except ValueError:
