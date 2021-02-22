@@ -126,8 +126,8 @@ class SubTreeExtractor:
         features = [[self.node_dict[node_id]] for node_id in vs]
         edges = [[], []]
         for src, dst in es:
-            edges[0].append(vs.index(src) + 1)
-            edges[1].append(vs.index(dst) + 1)
+            edges[0].append(vs.index(src))
+            edges[1].append(vs.index(dst))
 
         return features, edges
 
@@ -183,13 +183,13 @@ def store_subtrees(source_codes):
     print('\nall {} commit trees extracted in {}'.format(len(commit_codes), time_since(dataset_start)))
     print('{} files passed due to error'.format(errors))
 
-    with open(os.path.join(data_path, 'subtrees.json'), 'w') as fp:
+    with open(os.path.join(data_path, 'subtrees_0.25.json'), 'w') as fp:
         json.dump(ast_dict, fp)
-    print('\n** subtrees.json saved. **')
+    print('\n** subtrees_0.25.json saved. **')
 
 
 if __name__ == '__main__':
-    store_subtrees('source_codes_0.2.json')
+    store_subtrees('source_codes_0.25.json')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()
