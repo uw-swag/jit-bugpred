@@ -141,6 +141,8 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         }, os.path.join(BASE_PATH, 'trained_models/stats.pt'))
         print('* stats saved.\n')
 
+    torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_final.pt'))
+    print('* model_final saved.')
     print('\ntraining finished')
     return all_training_aucs, all_training_losses, all_val_aucs, all_val_losses
 

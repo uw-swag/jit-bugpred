@@ -6,6 +6,7 @@ import requests
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
+MAX_N_CHANGED_FILES = 3
 
 
 class GitMiner:
@@ -58,7 +59,7 @@ def get_source_codes():
     df_dict = df[['commit_id', 'buggy']].sample(frac=1).set_index('commit_id').to_dict()['buggy']
     # df = df[df['buggy']][['commit_id', 'buggy']].sample(frac=1)     # SELECT commit_id, buggy WHERE buggy='TRUE';
 
-    miner = GitMiner(max_n_changed_files=1)
+    miner = GitMiner(max_n_changed_files=MAX_N_CHANGED_FILES)
 
     contents = dict()
     buggy_cntr = {'True': 0, 'False': 0}
@@ -74,7 +75,7 @@ def get_source_codes():
         buggy_cntr[str(buggy)] += 1
         print('commit', cmtid, 'source codes fetched!')
 
-    with open(data_path + '/source_codes_' + str(ratio) + '.json', 'w') as fp:
+    with open(data_path + '/source_codes_' + str(ratio) + '_' + MAX_N_CHANGED_FILES + '.json', 'w') as fp:
         json.dump(contents, fp)
     print('buggy counter:', buggy_cntr)
 
