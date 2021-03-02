@@ -75,7 +75,7 @@ def get_source_codes():
         buggy_cntr[str(buggy)] += 1
         print('commit', cmtid, 'source codes fetched!')
 
-    with open(data_path + '/source_codes_' + str(ratio) + '_' + MAX_N_CHANGED_FILES + '.json', 'w') as fp:
+    with open(data_path + '/source_codes_' + str(ratio) + '_' + str(MAX_N_CHANGED_FILES) + '.json', 'w') as fp:
         json.dump(contents, fp)
     print('buggy counter:', buggy_cntr)
 

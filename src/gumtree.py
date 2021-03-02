@@ -157,12 +157,23 @@ def store_subtrees(source_codes):
     gumtree = GumTreeDiff()
     with open(os.path.join(data_path, source_codes), 'r') as fp:
         commit_codes = json.load(fp)
+
+    empty_template = '{"message":"Not Found",' \
+                     '"documentation_url":"https://docs.github.com/rest/reference/repos#get-repository-content"}'
+    supported_files = ['py']
+
     dataset_start = time.time()
     errors = 0
     ast_dict = dict()
     for cid, files in commit_codes.items():
         commit_start = time.time()
         for f in files:
+            fname = f[0].split('/')[-1]  # path/to/«file.py»
+            ftype = fname.split('.')[-1]
+            # exclude newly added files and unsupported ones
+            if f[1] == empty_template or ftype not in supported_files:
+                print('\t\t\t\t\tfile WRONG fromat!')
+                continue
             try:
                 b_dot, a_dot = gumtree.get_dotfiles(f)
             except SyntaxError:
@@ -189,7 +200,7 @@ def store_subtrees(source_codes):
 
 
 if __name__ == '__main__':
-    store_subtrees('source_codes_0.25.json')
+    store_subtrees('source_codes_0.25_3.json')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()
