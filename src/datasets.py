@@ -71,13 +71,15 @@ class ASTDataset(Dataset):
             if isinstance(file[1], str):    # for SYNTAX ERROR cases
                 continue
 
-            try:
-                # find the number of nodes from the max index of nodes in source and dest lists in edges.
-                b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
-                a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
-            except ValueError:
-                print(file[0], 'skipped -> 0 nodes!')
-                continue
+            # try:
+            #     # find the number of nodes from the max index of nodes in source and dest lists in edges.
+            #     b_n_nodes = max(max(file[1][1][0]), max(file[1][1][1])) + 1
+            #     a_n_nodes = max(max(file[2][1][0]), max(file[2][1][1])) + 1
+            # except ValueError:
+            #     print(file[0], 'skipped -> 0 nodes!')
+            #     continue
+            b_n_nodes = len(file[1][0])
+            a_n_nodes = len(file[2][0])
 
             if b_n_nodes > 5000 or a_n_nodes > 5000:
                 continue

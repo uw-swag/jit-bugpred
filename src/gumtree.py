@@ -185,6 +185,14 @@ def store_subtrees(source_codes):
             subtree = SubTreeExtractor(a_dot)
             a_subtree = subtree.extract_subtree()
 
+            # to exclude ast with no red nodes (which have empty subtrees)
+            if len(b_subtree[0]) == 0 and len(a_subtree[0]) == 0:
+                continue
+            elif len(f[1][0]) == 0:
+                f[1][0].append('None')
+            elif len(f[2][0]) == 0:
+                f[2][0].append('None')
+
             if cid not in ast_dict:
                 ast_dict[cid] = [(f[0], b_subtree, a_subtree)]
             else:

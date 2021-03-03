@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from datasets import ASTDataset
 from metrics import roc_auc
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
@@ -169,8 +169,19 @@ def test(model, test_filename):
                 y_true.append(file_tensors[4])
                 n_files += 1
 
-    _, _, _, auc = evaluate(y_true, y_scores)
-    print('metrics: AUC={}\n'.format(auc))
+    fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)
+    print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
+
+    plt.clf()
+    plt.title('Receiver Operating Characteristic')
+    plt.plot(fpr, tpr, 'b', label='AUC = %0.2f' % auc)
+    plt.legend(loc='lower right')
+    plt.plot([0, 1], [0, 1], 'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.savefig(os.path.join(BASE_PATH, 'trained_models/roc.png'))
 
     print('testing finished')
 
