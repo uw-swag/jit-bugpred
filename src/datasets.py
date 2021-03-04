@@ -90,7 +90,7 @@ class ASTDataset(Dataset):
             after_adj = self.get_adjacency_matrix(a_n_nodes, file[2][1][0], file[2][1][1])
             training_data.append([before_tokens, before_adj, after_tokens, after_adj, label])
 
-        if len(training_data):
+        if not len(training_data):
             print('commit {} has no file tensors.'.format(commit[0]))
         return training_data
 
