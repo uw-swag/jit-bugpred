@@ -68,8 +68,8 @@ class ASTDataset(Dataset):
         for file in commit[1]:
             # file is a list of 3 elements: name, before, and after. before and after are lists of two things
             # node tokens and node edges. node tokens is a list of lists of node tokens (node -> type + token)
-            if isinstance(file[1], str):    # for SYNTAX ERROR cases
-                continue
+            # if isinstance(file[1], str):    # for SYNTAX ERROR cases
+            #     continue
 
             # try:
             #     # find the number of nodes from the max index of nodes in source and dest lists in edges.
@@ -81,8 +81,8 @@ class ASTDataset(Dataset):
             b_n_nodes = len(file[1][0])
             a_n_nodes = len(file[2][0])
 
-            if b_n_nodes > 5000 or a_n_nodes > 5000:
-                continue
+            # if b_n_nodes > 5000 or a_n_nodes > 5000:
+            #     continue
 
             before_tokens = self.get_embedding([' '.join(node) for node in file[1][0]])
             after_tokens = self.get_embedding([' '.join(node) for node in file[2][0]])
@@ -90,6 +90,8 @@ class ASTDataset(Dataset):
             after_adj = self.get_adjacency_matrix(a_n_nodes, file[2][1][0], file[2][1][1])
             training_data.append([before_tokens, before_adj, after_tokens, after_adj, label])
 
+        if len(training_data):
+            print('commit {} has no file tensors.'.format(commit[0]))
         return training_data
 
 
