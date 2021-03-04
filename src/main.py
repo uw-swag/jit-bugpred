@@ -8,7 +8,7 @@ BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 
 
 if __name__ == '__main__':
-    epochs = 50
+    epochs = 20
     batch_size = 1
     n_classes = 2
     hidden_size = 768
@@ -36,5 +36,5 @@ if __name__ == '__main__':
     # plot_training(stats)
 
     # testing
-    # model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'), map_location=torch.device('cpu'))
-    # test(model, test_filename)
+    model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))  # need map_location=torch.device('cpu') if on CPU
+    test(model, test_filename)

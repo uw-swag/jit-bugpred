@@ -29,6 +29,10 @@ def evaluate(label, output):
     return roc_auc(np.array(label), np.array(output))
 
 
+def aggregate(tensors):
+    return torch.FloatTensor([torch.max(tensors)]).to(device)
+
+
 def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_far=0, resume=None):
 
     if resume:
@@ -61,21 +65,22 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
             data = train_dataset[i]
             if data is None:
                 continue
+            label = data[0][4]
             for file_tensors in data:
                 optimizer.zero_grad()
                 model = model.to(device)
                 output = model(file_tensors[0].to(device), file_tensors[1].to(device),
                                file_tensors[2].to(device), file_tensors[3].to(device))
-                loss = criterion(output, torch.Tensor([file_tensors[4]]).to(device))
+                loss = criterion(output, torch.Tensor([label]).to(device))
                 loss.backward()
                 optimizer.step()
                 total_loss += loss.item()
 
                 y_scores.append(output.item())
-                y_true.append(file_tensors[4])
+                y_true.append(label)
                 n_files += 1
 
-                if file_tensors[4]:
+                if label:
                     print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
                         n_files, len(train_dataset), loss.item()))
 
@@ -107,16 +112,21 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                 data = val_dataset[i]
                 if data is None:
                     continue
-                for file_tensors in data:
+                label = data[0][4]
+                cmt_outs = torch.zeros(len(data), device=device)
+                for j, file_tensors in enumerate(data):
                     model = model.to(device)
                     output = model(file_tensors[0].to(device), file_tensors[1].to(device),
                                    file_tensors[2].to(device), file_tensors[3].to(device))
-                    loss = criterion(output, torch.Tensor([file_tensors[4]]).to(device))
-                    total_loss += loss.item()
+                    cmt_outs[j] = output
 
-                    y_scores.append(output.item())
-                    y_true.append(file_tensors[4])
-                    n_files += 1
+                agg_out = aggregate(cmt_outs)
+                loss = criterion(agg_out, torch.Tensor([label]).to(device))
+                total_loss += loss.item()
+
+                y_scores.append(agg_out.item())
+                y_true.append(label)
+                n_files += 1        # actually, n_commits with this new implementation but whatever
 
         val_loss = total_loss / n_files
         _, _, _, val_auc = evaluate(y_true, y_scores)
@@ -151,7 +161,6 @@ def test(model, test_filename):
     test_dataset = ASTDataset(os.path.join(data_path, test_filename))
 
     print('testing')
-    n_files = 0
     y_scores = []
     y_true = []
     model.eval()
@@ -160,14 +169,17 @@ def test(model, test_filename):
             data = test_dataset[i]
             if data is None:
                 continue
-            for file_tensors in data:
+            label = data[0][4]
+            cmt_outs = torch.zeros(len(data), device=device)
+            for j, file_tensors in enumerate(data):
                 model = model.to(device)
                 output = model(file_tensors[0].to(device), file_tensors[1].to(device),
                                file_tensors[2].to(device), file_tensors[3].to(device))
+                cmt_outs[j] = output
 
-                y_scores.append(output.item())
-                y_true.append(file_tensors[4])
-                n_files += 1
+            agg_out = aggregate(cmt_outs)
+            y_scores.append(agg_out.item())
+            y_true.append(label)
 
     fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)
     print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
