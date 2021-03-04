@@ -56,7 +56,6 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         # training
         start = time.time()
         total_loss = 0
-        n_files = 0
         y_scores = []
         y_true = []
 
@@ -66,6 +65,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
             if data is None:
                 continue
             label = data[0][4]
+            commit_loss = 0
             for file_tensors in data:
                 optimizer.zero_grad()
                 model = model.to(device)
@@ -74,15 +74,16 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                 loss = criterion(output, torch.Tensor([label]).to(device))
                 loss.backward()
                 optimizer.step()
-                total_loss += loss.item()
+                commit_loss += loss.item()
 
                 y_scores.append(output.item())
                 y_true.append(label)
-                n_files += 1
 
-                if label:
-                    print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
-                        n_files, len(train_dataset), loss.item()))
+            mean_commit_loss = commit_loss / len(data)
+            total_loss += mean_commit_loss
+            if label:
+                print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
+                    i, len(train_dataset), mean_commit_loss))
 
         print('\nepoch duration: {}'.format(time_since(start)))
 
@@ -93,7 +94,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         }, os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
         print('* checkpoint saved.')
 
-        training_loss = total_loss / n_files
+        training_loss = total_loss / len(train_dataset)
         _, _, _, training_auc = evaluate(y_true, y_scores)
         print('\n<==== training loss = {:.4f} ====>'.format(training_loss))
         print('metrics: AUC={}'.format(training_auc))
@@ -103,7 +104,6 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
 
         # validation
         total_loss = 0
-        n_files = 0
         y_scores = []
         y_true = []
         model.eval()
@@ -126,9 +126,8 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
 
                 y_scores.append(agg_out.item())
                 y_true.append(label)
-                n_files += 1        # actually, n_commits with this new implementation but whatever
 
-        val_loss = total_loss / n_files
+        val_loss = total_loss / len(val_dataset)
         _, _, _, val_auc = evaluate(y_true, y_scores)
         print('<==== validation loss = {:.4f} ====>'.format(val_loss))
         print('metrics: AUC={}\n'.format(val_auc))
