@@ -5,6 +5,7 @@ import pickle
 import torch
 import torch.nn as nn
 from torch.nn import Parameter
+import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -76,13 +77,14 @@ class GraphConvolution(nn.Module):
         if self.bias is not None:
             self.bias.data.uniform_(-stdv, stdv)
 
-    def forward(self, input, adj):
-        support = torch.mm(input, self.weight)
+    def forward(self, feature, adj):
+        support = torch.mm(feature, self.weight)
         output = torch.mm(adj, support)
         if self.bias is not None:
-            return output + self.bias
-        else:
-            return output
+            output += self.bias
+        output = F.relu(output)
+        output = F.dropout(output, p=0.2)
+        return output
 
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
@@ -95,33 +97,21 @@ class JITGNN(nn.Module):
         super(JITGNN, self).__init__()
         self.hidden_size = hidden_size
         self.message_size = message_size
-        self.n_timesteps = n_timesteps
-        self.gnn1 = self.make_gcn()
-        self.gnn2 = self.make_gcn()
+        self.gnn11 = GraphConvolution(hidden_size, message_size)
+        self.gnn12 = GraphConvolution(message_size, message_size)
+        self.gnn13 = GraphConvolution(message_size, message_size)
+        self.gnn21 = GraphConvolution(hidden_size, message_size)
+        self.gnn22 = GraphConvolution(message_size, message_size)
+        self.gnn23 = GraphConvolution(message_size, message_size)
         self.fc1 = nn.Linear(2 * message_size, 128)
         self.fc2 = nn.Linear(128, 1)
         self.dropout = nn.Dropout(0.2)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
-    def make_gcn(self):
-        modules = [
-            GraphConvolution(self.hidden_size, self.message_size),
-            nn.ReLU(),
-            nn.Dropout(0.2)
-        ]
-        for i in range(self.n_timesteps - 1):
-            modules += [
-                GraphConvolution(self.message_size, self.message_size),
-                nn.ReLU()
-            ]
-            if i < self.n_timesteps - 2:
-                modules += [nn.Dropout(0.2)]
-        return nn.Sequential(*modules)
-
     @staticmethod
     def add_supernode(feature, adj_matrix):
-        with torch.no_grad:
+        with torch.no_grad():
             zeros = torch.zeros(1, feature.size(1)).to(device)
             feature = torch.cat((feature, zeros), 0)
 
@@ -135,49 +125,30 @@ class JITGNN(nn.Module):
     @staticmethod
     def normalize(matrix):
         with torch.no_grad():
-            row_sum = torch.FloatTensor(matrix.sum(1))
-            rs_inverse = torch.pow(row_sum, -1).flatten()
+            row_sum = matrix.sum(1).to(device)
+            rs_inverse = torch.pow(row_sum, -1).flatten().to(device)
             rs_inverse[torch.isinf(rs_inverse)] = 0.
-            rs_mat_inv = torch.diag(rs_inverse)
+            rs_mat_inv = torch.diag(rs_inverse).to(device)
             matrix = rs_mat_inv.mm(matrix)
 
         return matrix
 
     def forward(self, b_x, b_adj, a_x, a_adj):
-        print('1.', b_x.requires_grad, b_adj.requires_grad, a_x.requires_grad, a_adj.requires_grad)
-
-        bx, b_adj = self.add_supernode(b_x, b_adj)
+        b_x, b_adj = self.add_supernode(b_x, b_adj)
         b_adj = self.normalize(b_adj)
-        ax, a_adj = self.add_supernode(a_x, a_adj)
+        a_x, a_adj = self.add_supernode(a_x, a_adj)
         a_adj = self.normalize(a_adj)
 
-        print('2.', b_x.requires_grad, b_adj.requires_grad, a_x.requires_grad, a_adj.requires_grad)
-
-        b_node_embeddings = self.gnn1(b_x, b_adj)
+        b_node_embeddings = self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj)
         b_supernode = b_node_embeddings[-1, :]
-
-        print('3.', b_node_embeddings.requires_grad)
-        print('4.', b_supernode.requires_grad)
-
-        a_node_embeddings = self.gnn2(a_x, a_adj)
+        a_node_embeddings = self.gnn23(self.gnn22(self.gnn21(a_x, a_adj), a_adj), a_adj)
         a_supernode = a_node_embeddings[-1, :]
-
-        print('5.', a_node_embeddings.requires_grad)
-        print('6.', a_supernode.requires_grad)
-
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
 
-        print('7.', supernodes.requires_grad)
-
         hidden = self.fc1(supernodes)
-        print('8.', hidden.requires_grad)
         hidden = self.relu(hidden)
-        print('9.', hidden.requires_grad)
         hidden = self.dropout(hidden)
-        print('10.', hidden.requires_grad)
         output = self.fc2(hidden)
-        print('10.', output.requires_grad)
         output = self.sigmoid(output)
-        print('10.', output.requires_grad)
         return output
 
