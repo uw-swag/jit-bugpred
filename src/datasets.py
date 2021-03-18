@@ -32,8 +32,7 @@ class ASTDataset(Dataset):
 
     @staticmethod
     def get_adjacency_matrix(n_nodes, src, dst):
-        # note that adjacency matrices in this problem are very sparse
-        a = torch.zeros(n_nodes, n_nodes)
+        a = torch.eye(n_nodes)      # add self loop to the graph
         for i in range(len(src)):
             a[src[i], dst[i]] = 1
         return a

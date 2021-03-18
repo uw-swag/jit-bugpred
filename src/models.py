@@ -1,7 +1,10 @@
+import math
+
 from sklearn.linear_model import LogisticRegression
 import pickle
 import torch
 import torch.nn as nn
+from torch.nn import Parameter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -43,44 +46,138 @@ class GatedGNN(nn.Module):
         # do we need non-linearity?
         # do we need dropout?
         # do we need batch normalization?
-        h = x
-        zeros = torch.zeros(1, h.size(1)).to(device)
-        h = torch.cat((h, zeros), 0)
-        ones = torch.ones(1, adj_matrix.size(0)).to(device)
-        adj_matrix = torch.cat((adj_matrix, ones), 0)
-        zeros = torch.zeros(adj_matrix.size(0), 1).to(device)
-        adj_matrix = torch.cat((adj_matrix, zeros), 1)
         for i in range(self.n_timesteps):
             # take care of the shape in the matrix multiplication.
-            current_messages = self.linear(h)
+            current_messages = self.linear(x)
             next_messages = torch.matmul(adj_matrix, current_messages)
-            h = self.gru_cell(next_messages, h)
+            x = self.gru_cell(next_messages, x)
 
-        return h
+        return x
+
+
+class GraphConvolution(nn.Module):
+    """
+    from https://github.com/tkipf/pygcn/
+    """
+    def __init__(self, in_features, out_features, bias=True):
+        super(GraphConvolution, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.weight = Parameter(torch.FloatTensor(in_features, out_features))
+        if bias:
+            self.bias = Parameter(torch.FloatTensor(out_features))
+        else:
+            self.register_parameter('bias', None)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        stdv = 1. / math.sqrt(self.weight.size(1))
+        self.weight.data.uniform_(-stdv, stdv)
+        if self.bias is not None:
+            self.bias.data.uniform_(-stdv, stdv)
+
+    def forward(self, input, adj):
+        support = torch.mm(input, self.weight)
+        output = torch.mm(adj, support)
+        if self.bias is not None:
+            return output + self.bias
+        else:
+            return output
+
+    def __repr__(self):
+        return self.__class__.__name__ + ' (' \
+               + str(self.in_features) + ' -> ' \
+               + str(self.out_features) + ')'
 
 
 class JITGNN(nn.Module):
     def __init__(self, hidden_size, message_size, n_timesteps):
         super(JITGNN, self).__init__()
-        self.ggnn = GatedGNN(hidden_size, message_size, n_timesteps)
-        self.fc1 = nn.Linear(2 * hidden_size, 128)
+        self.hidden_size = hidden_size
+        self.message_size = message_size
+        self.n_timesteps = n_timesteps
+        self.gnn1 = self.make_gcn()
+        self.gnn2 = self.make_gcn()
+        self.fc1 = nn.Linear(2 * message_size, 128)
         self.fc2 = nn.Linear(128, 1)
         self.dropout = nn.Dropout(0.2)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
+    def make_gcn(self):
+        modules = [
+            GraphConvolution(self.hidden_size, self.message_size),
+            nn.ReLU(),
+            nn.Dropout(0.2)
+        ]
+        for i in range(self.n_timesteps - 1):
+            modules += [
+                GraphConvolution(self.message_size, self.message_size),
+                nn.ReLU()
+            ]
+            if i < self.n_timesteps - 2:
+                modules += [nn.Dropout(0.2)]
+        return nn.Sequential(*modules)
+
+    @staticmethod
+    def add_supernode(feature, adj_matrix):
+        with torch.no_grad:
+            zeros = torch.zeros(1, feature.size(1)).to(device)
+            feature = torch.cat((feature, zeros), 0)
+
+            zeros = torch.zeros(adj_matrix.size(0), 1).to(device)
+            adj_matrix = torch.cat((adj_matrix, zeros), 1)
+            ones = torch.ones(1, adj_matrix.size(1)).to(device)
+            adj_matrix = torch.cat((adj_matrix, ones), 0)
+
+        return feature, adj_matrix
+
+    @staticmethod
+    def normalize(matrix):
+        with torch.no_grad():
+            row_sum = torch.FloatTensor(matrix.sum(1))
+            rs_inverse = torch.pow(row_sum, -1).flatten()
+            rs_inverse[torch.isinf(rs_inverse)] = 0.
+            rs_mat_inv = torch.diag(rs_inverse)
+            matrix = rs_mat_inv.mm(matrix)
+
+        return matrix
+
     def forward(self, b_x, b_adj, a_x, a_adj):
-        # consider attention. maybe instead of supernode
-        b_node_embeddings = self.ggnn(b_x, b_adj)
+        print('1.', b_x.requires_grad, b_adj.requires_grad, a_x.requires_grad, a_adj.requires_grad)
+
+        bx, b_adj = self.add_supernode(b_x, b_adj)
+        b_adj = self.normalize(b_adj)
+        ax, a_adj = self.add_supernode(a_x, a_adj)
+        a_adj = self.normalize(a_adj)
+
+        print('2.', b_x.requires_grad, b_adj.requires_grad, a_x.requires_grad, a_adj.requires_grad)
+
+        b_node_embeddings = self.gnn1(b_x, b_adj)
         b_supernode = b_node_embeddings[-1, :]
-        a_node_embeddings = self.ggnn(a_x, a_adj)
+
+        print('3.', b_node_embeddings.requires_grad)
+        print('4.', b_supernode.requires_grad)
+
+        a_node_embeddings = self.gnn2(a_x, a_adj)
         a_supernode = a_node_embeddings[-1, :]
+
+        print('5.', a_node_embeddings.requires_grad)
+        print('6.', a_supernode.requires_grad)
+
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
 
+        print('7.', supernodes.requires_grad)
+
         hidden = self.fc1(supernodes)
+        print('8.', hidden.requires_grad)
         hidden = self.relu(hidden)
+        print('9.', hidden.requires_grad)
         hidden = self.dropout(hidden)
+        print('10.', hidden.requires_grad)
         output = self.fc2(hidden)
+        print('10.', output.requires_grad)
         output = self.sigmoid(output)
+        print('10.', output.requires_grad)
         return output
 

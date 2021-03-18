@@ -13,7 +13,7 @@ if __name__ == '__main__':
     n_classes = 2
     hidden_size = 768
     message_size = 256
-    n_timesteps = 8
+    n_timesteps = 4
     train_filename = 'subtrees_0.25_train.json'
     val_filename = 'subtrees_0.25_val.json'
     test_filename = 'subtrees_0.25_test.json'
