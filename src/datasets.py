@@ -35,6 +35,7 @@ class ASTDataset(Dataset):
         a = torch.eye(n_nodes)      # add self loop to the graph
         for i in range(len(src)):
             a[src[i], dst[i]] = 1
+            a[dst[i], src[i]] = 1   # to have bi-directional edges
         return a
 
     def get_embedding(self, file_node_tokens):

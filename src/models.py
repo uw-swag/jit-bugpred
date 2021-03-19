@@ -100,9 +100,11 @@ class JITGNN(nn.Module):
         self.gnn11 = GraphConvolution(hidden_size, message_size)
         self.gnn12 = GraphConvolution(message_size, message_size)
         self.gnn13 = GraphConvolution(message_size, message_size)
+        self.gnn14 = GraphConvolution(message_size, message_size)
         self.gnn21 = GraphConvolution(hidden_size, message_size)
         self.gnn22 = GraphConvolution(message_size, message_size)
         self.gnn23 = GraphConvolution(message_size, message_size)
+        self.gnn24 = GraphConvolution(message_size, message_size)
         self.fc1 = nn.Linear(2 * message_size, 128)
         self.fc2 = nn.Linear(128, 1)
         self.dropout = nn.Dropout(0.2)
@@ -139,9 +141,10 @@ class JITGNN(nn.Module):
         a_x, a_adj = self.add_supernode(a_x, a_adj)
         a_adj = self.normalize(a_adj)
 
-        b_node_embeddings = self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj)
+        # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
+        b_node_embeddings = self.gnn14(self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj), b_adj)
         b_supernode = b_node_embeddings[-1, :]
-        a_node_embeddings = self.gnn23(self.gnn22(self.gnn21(a_x, a_adj), a_adj), a_adj)
+        a_node_embeddings = self.gnn24(self.gnn23(self.gnn22(self.gnn21(a_x, a_adj), a_adj), a_adj), a_adj)
         a_supernode = a_node_embeddings[-1, :]
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
 
