@@ -10,9 +10,9 @@ MAX_N_CHANGED_FILES = 3
 
 
 class GitMiner:
-    def __init__(self, max_n_changed_files):
+    def __init__(self):
         self.base_url = 'https://api.github.com'
-        self.max_n_files = max_n_changed_files
+        # self.max_n_files = max_n_changed_files
         with open(os.path.join(BASE_PATH, 'conf', 'auth.conf'), 'r') as file:
             lines = file.readlines()
         self.token = lines[2].split('\n')[0]
@@ -29,8 +29,8 @@ class GitMiner:
         response = self.session.get(commit.get('url'), headers=headers)
         commit = json.loads(response.text)
         changed_files = commit.get('files')
-        if len(changed_files) > self.max_n_files:
-            return None
+        # if len(changed_files) > self.max_n_files:
+        #     return None
         filenames = [file.get('filename') for file in changed_files]
         before_contents = []
         after_contents = []
@@ -55,29 +55,31 @@ class GitMiner:
 
 
 def get_source_codes():
-    df = pd.read_csv(data_path + '/rawdata.csv')
-    df_dict = df[['commit_id', 'buggy']].sample(frac=1).set_index('commit_id').to_dict()['buggy']
+    df = pd.read_csv(data_path + '/ballowfiletrain.csv')
+    # df_dict = df[['commit_id', 'buggy']].sample(frac=1).set_index('commit_id').to_dict()['buggy']
     # df = df[df['buggy']][['commit_id', 'buggy']].sample(frac=1)     # SELECT commit_id, buggy WHERE buggy='TRUE';
 
-    miner = GitMiner(max_n_changed_files=MAX_N_CHANGED_FILES)
+    miner = GitMiner()
 
     contents = dict()
-    buggy_cntr = {'True': 0, 'False': 0}
-    ratio = 0.25
-    for cmtid, buggy in df_dict.items():
-        if not buggy and buggy_cntr['True'] < buggy_cntr['False'] * ratio:
-            continue
+    # buggy_cntr = {'True': 0, 'False': 0}
+    # ratio = 0.25
+    for i, row in df.iterrows():
+        cmtid = row['commit_id']
+        # if not buggy and buggy_cntr['True'] < buggy_cntr['False'] * ratio:
+        # continue
         content = miner.get_before_after_content(cmtid)
         if content is None:
             print('\t\tcommit', cmtid, 'skipped!')
             continue
         contents[cmtid] = content
-        buggy_cntr[str(buggy)] += 1
+        # buggy_cntr[str(buggy)] += 1
         print('commit', cmtid, 'source codes fetched!')
 
-    with open(data_path + '/source_codes_' + str(ratio) + '_' + str(MAX_N_CHANGED_FILES) + '.json', 'w') as fp:
+    with open(data_path + '/source_codes_' + 'lowfiletrain' + '.json', 'w') as fp:
         json.dump(contents, fp)
-    print('buggy counter:', buggy_cntr)
+    print('\nfinished.')
+    # print('buggy counter:', buggy_cntr)
 
 
 if __name__ == "__main__":
