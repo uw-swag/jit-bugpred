@@ -49,13 +49,17 @@ class GitMiner:
                    'content-type': 'application/json',
                    'accept': 'application/vnd.github.cloak-preview'}
         response = self.session.get(self.base_url + '/search/commits?q=' + commit_id, headers=headers)
-        time.sleep(5)
+        time.sleep(4)
         response_dict = json.loads(response.text)
         return response_dict.get('items')[0]
 
 
 def get_source_codes():
-    df = pd.read_csv(data_path + '/ballowfiletrain.csv')
+    df = pd.read_csv(data_path + '/alltrain.csv')
+    collected = pd.concat([pd.read_csv(data_path + '/ballowfiletrain.csv'),
+                           pd.read_csv(data_path + '/ballowfileval.csv'),
+                           pd.read_csv(data_path + '/ballowfiletest.csv')])
+    df = df[~df['commit_id'].isin(collected['commit_id'])]
     # df_dict = df[['commit_id', 'buggy']].sample(frac=1).set_index('commit_id').to_dict()['buggy']
     # df = df[df['buggy']][['commit_id', 'buggy']].sample(frac=1)     # SELECT commit_id, buggy WHERE buggy='TRUE';
 
@@ -76,7 +80,7 @@ def get_source_codes():
         # buggy_cntr[str(buggy)] += 1
         print('commit', cmtid, 'source codes fetched!')
 
-    with open(data_path + '/source_codes_' + 'lowfiletrain' + '.json', 'w') as fp:
+    with open(data_path + '/source_codes_' + 'alltrain' + '.json', 'w') as fp:
         json.dump(contents, fp)
     print('\nfinished.')
     # print('buggy counter:', buggy_cntr)
