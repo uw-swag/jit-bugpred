@@ -3,6 +3,7 @@ import time
 import pandas as pd
 import os
 import requests
+from pydriller import RepositoryMining, ModificationType
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -48,8 +49,9 @@ class GitMiner:
         headers = {'Authorization': 'token ' + self.token,
                    'content-type': 'application/json',
                    'accept': 'application/vnd.github.cloak-preview'}
-        response = self.session.get(self.base_url + '/search/commits?q=' + commit_id, headers=headers)
-        time.sleep(4)
+        query = self.base_url + '/search/commits?q=' + commit_id + '+org:openstack'
+        response = self.session.get(query, headers=headers)
+        time.sleep(2)
         response_dict = json.loads(response.text)
         return response_dict.get('items')[0]
 
@@ -86,5 +88,62 @@ def get_source_codes():
     # print('buggy counter:', buggy_cntr)
 
 
+def get_project_name():
+    df = pd.read_csv(data_path + '/rawdata.csv', dtype={'revd': str, 'buggy': str, 'fix': str})
+    miner = GitMiner()
+
+    projects = []
+    for i, row in df.iterrows():
+        cmtid = row['commit_id']
+        proj = None
+        while not proj:
+            try:
+                response = miner.search_commit(cmtid)
+                proj = response['repository']['full_name']
+            except IndexError:
+                print('\t\t*****', cmtid)
+                proj = 'unkowncommit'
+            except TypeError:
+                time.sleep(30)
+
+        if i % 50 == 49:
+            print('a batch of 50 commits finished.')
+        projects.append(proj)
+        assert i == len(projects) - 1
+
+    df = df.assign(project=pd.Series(projects).values)
+    df.to_csv('newrawdata.csv', index=False)
+    print('\nfinished.')
+
+
+def update_n_files():
+    df = pd.read_csv(data_path + '/newrawdata.csv', dtype={'revd': str, 'buggy': str, 'fix': str})
+    projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
+    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())
+    nfs = dict()
+    for i, c in enumerate(repo_mining.traverse_commits()):
+        nf = 0
+        for m in c.modifications:
+            if m.filename.endswith('.py') and m.change_type is ModificationType.MODIFY:
+                nf += 1
+        nfs[c.hash] = nf
+        if i % 50 == 49:
+            print('a batch of 50 commits finished.')
+
+    nf_list = []
+    for i, row in df.iterrows():
+        if row['project'] == 'unkowncommit':
+            nf = row['nf']
+        else:
+            nf = nfs[row['commit_id']]
+        nf_list.append(nf)
+
+    df['nf'] = nf_list
+    df.to_csv(data_path + '/newrawdata.csv', index=False)
+    print(nf_list[:30])
+    print('\nfinished.')
+
+
 if __name__ == "__main__":
-    get_source_codes()
+    # get_source_codes()
+    get_project_name()

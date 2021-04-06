@@ -4,6 +4,8 @@ import os
 import re
 import subprocess
 import time
+import pandas as pd
+from pydriller import RepositoryMining, ModificationType
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -153,32 +155,26 @@ def time_since(since):
     return '{} min {:.2f} sec'.format(m, s)
 
 
-def store_subtrees(source_codes):
+def store_subtrees(file):
     gumtree = GumTreeDiff()
-    with open(os.path.join(data_path, source_codes), 'r') as fp:
-        commit_codes = json.load(fp)
-
-    empty_template = '{"message":"Not Found",' \
-                     '"documentation_url":"https://docs.github.com/rest/reference/repos#get-repository-content"}'
-    supported_files = ['py']
-
+    df = pd.read_csv(data_path + file, dtype={'revd': str, 'buggy': str, 'fix': str})
+    projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
+    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())     # this skips unkowncommits automatically
     dataset_start = time.time()
-    errors = 0
     ast_dict = dict()
-    for cid, files in commit_codes.items():
+    for i, commit in enumerate(repo_mining.traverse_commits()):
         commit_start = time.time()
-        for f in files:
-            fname = f[0].split('/')[-1]  # path/to/«file.py»
-            ftype = fname.split('.')[-1]
-            # exclude newly added files and unsupported ones
-            if f[1] == empty_template or ftype not in supported_files:
-                print('\t\t\t\t\tfile WRONG fromat!')
+        for m in commit.modifications:
+            if not m.filename.endswith('.py') or m.change_type is not ModificationType.MODIFY:
                 continue
+            filepath = m.new_path
+            before = m.source_code_before
+            after = m.source_code
+            f = (filepath, before, after)
             try:
                 b_dot, a_dot = gumtree.get_dotfiles(f)
             except SyntaxError:
                 print('\t\t\t\tsource code contains syntax error. PASS!')
-                errors += 1
                 continue
             subtree = SubTreeExtractor(b_dot)
             b_subtree = subtree.extract_subtree()
@@ -188,27 +184,29 @@ def store_subtrees(source_codes):
             # to exclude ast with no red nodes (which have empty subtrees)
             if len(b_subtree[0]) == 0 and len(a_subtree[0]) == 0:
                 continue
-            elif len(f[1][0]) == 0:
-                f[1][0].append('None')
-            elif len(f[2][0]) == 0:
-                f[2][0].append('None')
+            elif len(b_subtree[0]) == 0:
+                b_subtree[0].append('None')
+            elif len(a_subtree[0]) == 0:
+                a_subtree[0].append('None')
 
-            if cid not in ast_dict:
-                ast_dict[cid] = [(f[0], b_subtree, a_subtree)]
+            if commit.hash not in ast_dict:
+                ast_dict[commit.hash] = [(filepath, b_subtree, a_subtree)]
             else:
-                ast_dict[cid].append((f[0], b_subtree, a_subtree))
+                ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
+        print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
+        if i % 100 == 99:
+            with open(os.path.join(data_path, 'subtrees_pydriller.json'), 'w') as fp:
+                json.dump(ast_dict, fp)
+            print('\n\n***** ast_dict backup saved at iteration {}. *****\n\n'.format(i + 1))
+    print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
-        print('commit {} subtrees collected in {}.'.format(cid[:7], time_since(commit_start)))
-    print('\nall {} commit trees extracted in {}'.format(len(commit_codes), time_since(dataset_start)))
-    print('{} files passed due to error'.format(errors))
-
-    with open(os.path.join(data_path, 'subtrees_0.25.json'), 'w') as fp:
+    with open(os.path.join(data_path, 'subtrees_pydriller.json'), 'w') as fp:
         json.dump(ast_dict, fp)
-    print('\n** subtrees_0.25.json saved. **')
+    print('\n** subtrees_pydriller.json saved. **')
 
 
 if __name__ == '__main__':
-    store_subtrees('source_codes_0.25_3.json')
+    store_subtrees('/newrawdata.csv')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()
