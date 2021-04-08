@@ -14,9 +14,9 @@ if __name__ == '__main__':
     hidden_size = 768
     message_size = 256
     n_timesteps = 4
-    train_filename = 'subtrees_0.25_train.json'
-    val_filename = 'subtrees_0.25_val.json'
-    test_filename = 'subtrees_0.25_test.json'
+    train_filename = 'subtrees_lowfile_train.json'
+    val_filename = 'subtrees_lowfile_val.json'
+    test_filename = 'subtrees_lowfile_test.json'
 
     model = JITGNN(hidden_size, message_size, n_timesteps)
     criterion = nn.BCELoss()
@@ -36,5 +36,5 @@ if __name__ == '__main__':
     # plot_training(stats)
 
     # testing
-    model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))  # need map_location=torch.device('cpu') if on CPU
-    test(model, test_filename)
+    # model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))  # need map_location=torch.device('cpu') if on CPU
+    # test(model, test_filename)
