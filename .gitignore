@@ -19,3 +19,4 @@ notebooks/*.py
 notebooks/*.png
 notebooks/*.dot
 notebooks/.ipynb_checkpoints
+notfound.txt

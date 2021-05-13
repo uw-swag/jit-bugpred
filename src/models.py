@@ -79,7 +79,7 @@ class GraphConvolution(nn.Module):
 
     def forward(self, feature, adj):
         support = torch.mm(feature, self.weight)
-        output = torch.mm(adj, support)
+        output = torch.spmm(adj, support)
         if self.bias is not None:
             output += self.bias
         output = F.relu(output)
@@ -93,7 +93,7 @@ class GraphConvolution(nn.Module):
 
 
 class JITGNN(nn.Module):
-    def __init__(self, hidden_size, message_size, n_timesteps):
+    def __init__(self, hidden_size, message_size):
         super(JITGNN, self).__init__()
         self.hidden_size = hidden_size
         self.message_size = message_size
@@ -105,42 +105,10 @@ class JITGNN(nn.Module):
         self.gnn22 = GraphConvolution(message_size, message_size)
         self.gnn23 = GraphConvolution(message_size, message_size)
         self.gnn24 = GraphConvolution(message_size, message_size)
-        self.fc1 = nn.Linear(2 * message_size, 128)
-        self.fc2 = nn.Linear(128, 1)
-        self.dropout = nn.Dropout(0.2)
-        self.relu = nn.ReLU()
+        self.fc = nn.Linear(2 * message_size, 1)
         self.sigmoid = nn.Sigmoid()
 
-    @staticmethod
-    def add_supernode(feature, adj_matrix):
-        with torch.no_grad():
-            zeros = torch.zeros(1, feature.size(1)).to(device)
-            feature = torch.cat((feature, zeros), 0)
-
-            zeros = torch.zeros(adj_matrix.size(0), 1).to(device)
-            adj_matrix = torch.cat((adj_matrix, zeros), 1)
-            ones = torch.ones(1, adj_matrix.size(1)).to(device)
-            adj_matrix = torch.cat((adj_matrix, ones), 0)
-
-        return feature, adj_matrix
-
-    @staticmethod
-    def normalize(matrix):
-        with torch.no_grad():
-            row_sum = matrix.sum(1).to(device)
-            rs_inverse = torch.pow(row_sum, -1).flatten().to(device)
-            rs_inverse[torch.isinf(rs_inverse)] = 0.
-            rs_mat_inv = torch.diag(rs_inverse).to(device)
-            matrix = rs_mat_inv.mm(matrix)
-
-        return matrix
-
     def forward(self, b_x, b_adj, a_x, a_adj):
-        b_x, b_adj = self.add_supernode(b_x, b_adj)
-        b_adj = self.normalize(b_adj)
-        a_x, a_adj = self.add_supernode(a_x, a_adj)
-        a_adj = self.normalize(a_adj)
-
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
         b_node_embeddings = self.gnn14(self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj), b_adj)
         b_supernode = b_node_embeddings[-1, :]
@@ -148,10 +116,7 @@ class JITGNN(nn.Module):
         a_supernode = a_node_embeddings[-1, :]
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
 
-        hidden = self.fc1(supernodes)
-        hidden = self.relu(hidden)
-        hidden = self.dropout(hidden)
-        output = self.fc2(hidden)
-        output = self.sigmoid(output)
+        hidden = self.fc(supernodes)
+        output = self.sigmoid(hidden)
         return output
 

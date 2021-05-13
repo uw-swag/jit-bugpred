@@ -3,7 +3,6 @@ import os
 import time
 import numpy as np
 import torch
-from datasets import ASTDataset
 from metrics import roc_auc
 import matplotlib.pyplot as plt
 
@@ -33,7 +32,7 @@ def aggregate(tensors):
     return torch.FloatTensor([torch.max(tensors)]).to(device)
 
 
-def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_far=0, resume=None):
+def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
 
     if resume:
         all_training_aucs = resume['all_training_aucs']
@@ -46,8 +45,6 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         all_val_aucs = []
         all_val_losses = []
 
-    train_dataset = ASTDataset(os.path.join(data_path, train_filename))
-    val_dataset = ASTDataset(os.path.join(data_path, val_filename))
     # display_every = len(train_dataset) // 100
 
     print('training')
@@ -60,10 +57,9 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         y_true = []
 
         model.train()
-        for i in range(len(train_dataset)):
-            data = train_dataset[i]
-            if data is None:
-                continue
+        dataset.set_mode('train')
+        for i in range(len(dataset)):
+            data = dataset[i]
             label = data[0][4]
             commit_loss = 0
             for file_tensors in data:
@@ -83,7 +79,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
             total_loss += mean_commit_loss
             if label:
                 print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
-                    i, len(train_dataset), mean_commit_loss))
+                    i, len(dataset), mean_commit_loss))
 
         print('\nepoch duration: {}'.format(time_since(start)))
 
@@ -94,7 +90,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         }, os.path.join(BASE_PATH, 'trained_models/checkpoint.pt'))
         print('* checkpoint saved.')
 
-        training_loss = total_loss / len(train_dataset)
+        training_loss = total_loss / len(dataset)
         _, _, _, training_auc = evaluate(y_true, y_scores)
         print('\n<==== training loss = {:.4f} ====>'.format(training_loss))
         print('metrics: AUC={}'.format(training_auc))
@@ -107,9 +103,10 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
         y_scores = []
         y_true = []
         model.eval()
+        dataset.set_mode('val')
         with torch.no_grad():
-            for i in range(len(val_dataset)):
-                data = val_dataset[i]
+            for i in range(len(dataset)):
+                data = dataset[i]
                 if data is None:
                     continue
                 label = data[0][4]
@@ -127,7 +124,7 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
                 y_scores.append(agg_out.item())
                 y_true.append(label)
 
-        val_loss = total_loss / len(val_dataset)
+        val_loss = total_loss / len(dataset)
         _, _, _, val_auc = evaluate(y_true, y_scores)
         print('<==== validation loss = {:.4f} ====>'.format(val_loss))
         print('metrics: AUC={}\n'.format(val_auc))
@@ -156,16 +153,15 @@ def train(model, optimizer, criterion, epochs, train_filename, val_filename, so_
     return all_training_aucs, all_training_losses, all_val_aucs, all_val_losses
 
 
-def test(model, test_filename):
-    test_dataset = ASTDataset(os.path.join(data_path, test_filename))
-
+def test(model, dataset):
     print('testing')
     y_scores = []
     y_true = []
     model.eval()
+    dataset.set_mode('test')
     with torch.no_grad():
-        for i in range(len(test_dataset)):
-            data = test_dataset[i]
+        for i in range(len(dataset)):
+            data = dataset[i]
             if data is None:
                 continue
             label = data[0][4]
