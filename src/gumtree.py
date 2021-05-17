@@ -158,7 +158,8 @@ def time_since(since):
 def store_subtrees(file):
     gumtree = GumTreeDiff()
     df = pd.read_csv(data_path + file, dtype={'revd': str, 'buggy': str, 'fix': str})
-    projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
+    projects = [p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
+    # projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
     repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())     # this skips unkowncommits automatically
     dataset_start = time.time()
     ast_dict = dict()
@@ -195,18 +196,18 @@ def store_subtrees(file):
                 ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
         print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
         if i % 100 == 99:
-            with open(os.path.join(data_path, 'subtrees_pydriller.json'), 'w') as fp:
+            with open(os.path.join(data_path, 'subtrees_jitlinediff.json'), 'w') as fp:
                 json.dump(ast_dict, fp)
             print('\n\n***** ast_dict backup saved at iteration {}. *****\n\n'.format(i + 1))
     print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
-    with open(os.path.join(data_path, 'subtrees_pydriller.json'), 'w') as fp:
+    with open(os.path.join(data_path, 'subtrees_jitlinediff.json'), 'w') as fp:
         json.dump(ast_dict, fp)
-    print('\n** subtrees_pydriller.json saved. **')
+    print('\n** subtrees_jitlinediff.json saved. **')
 
 
 if __name__ == '__main__':
-    store_subtrees('/newrawdata.csv')
+    store_subtrees('/newjitline_diff.csv')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()

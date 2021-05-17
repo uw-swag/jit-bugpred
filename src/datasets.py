@@ -18,11 +18,9 @@ HIDDEN_SIZE = 768
 class ASTDataset(Dataset):
     def __init__(self, data_dict, transform=None):
         self.transform = transform
-        df = pd.read_csv(data_path + '/rawdata.csv')
-        df = df[['commit_id', 'buggy']]
-        df.set_index('commit_id', inplace=True)
-        self.label_dict = df.to_dict()['buggy']
         self.data_dict = data_dict
+        with open(data_path + self.data_dict['labels']) as file:
+            self.labels = json.load(file)
         self.ast_dict = None
         self.vectorizer_model = None
         self.learn_vectorizer()
@@ -125,7 +123,7 @@ class ASTDataset(Dataset):
 
     def __getitem__(self, item):
         commit = self.ast_dict[item]
-        label = 1 if self.label_dict[commit[0]] else 0
+        label = self.labels[commit[0]]
         training_data = []
         for file in commit[1]:
             b_n_nodes = len(file[1][0])

@@ -15,7 +15,8 @@ if __name__ == '__main__':
     data_dict = {
         'train': '/subtrees_lowfile_train.json',
         'val': '/subtrees_lowfile_val.json',
-        'test': '/subtrees_lowfile_test.json'
+        'test': '/subtrees_lowfile_test.json',
+        'labels': '/labels.json'
     }
     dataset = ASTDataset(data_dict)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 1     # plus supernode node feature
