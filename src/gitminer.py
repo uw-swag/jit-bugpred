@@ -88,8 +88,8 @@ def get_source_codes():
     # print('buggy counter:', buggy_cntr)
 
 
-def get_project_name():
-    df = pd.read_csv(data_path + '/rawdata.csv', dtype={'revd': str, 'buggy': str, 'fix': str})
+def get_project_name(filename):
+    df = pd.read_csv(os.path.join(data_path, filename), dtype={'revd': str, 'buggy': str, 'fix': str})
     miner = GitMiner()
 
     projects = []
@@ -112,7 +112,7 @@ def get_project_name():
         assert i == len(projects) - 1
 
     df = df.assign(project=pd.Series(projects).values)
-    df.to_csv('newrawdata.csv', index=False)
+    df.to_csv(os.path.join(data_path, 'new' + filename), index=False)
     print('\nfinished.')
 
 
@@ -146,4 +146,4 @@ def update_n_files():
 
 if __name__ == "__main__":
     # get_source_codes()
-    get_project_name()
+    get_project_name('jitline_diff.csv')
