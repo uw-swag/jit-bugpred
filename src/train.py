@@ -60,20 +60,19 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
         dataset.set_mode('train')
         for i in range(len(dataset)):
             data = dataset[i]
-            label = data[0][4]
+            label = data[4]
             commit_loss = 0
-            for file_tensors in data:
-                optimizer.zero_grad()
-                model = model.to(device)
-                output = model(file_tensors[0].to(device), file_tensors[1].to(device),
-                               file_tensors[2].to(device), file_tensors[3].to(device))
-                loss = criterion(output, torch.Tensor([label]).to(device))
-                loss.backward()
-                optimizer.step()
-                commit_loss += loss.item()
+            optimizer.zero_grad()
+            model = model.to(device)
+            output = model(data[0].to(device), data[1].to(device),
+                           data[2].to(device), data[3].to(device))
+            loss = criterion(output, torch.Tensor([label]).to(device))
+            loss.backward()
+            optimizer.step()
+            commit_loss += loss.item()
 
-                y_scores.append(output.item())
-                y_true.append(label)
+            y_scores.append(output.item())
+            y_true.append(label)
 
             mean_commit_loss = commit_loss / len(data)
             total_loss += mean_commit_loss
@@ -107,21 +106,14 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
         with torch.no_grad():
             for i in range(len(dataset)):
                 data = dataset[i]
-                if data is None:
-                    continue
-                label = data[0][4]
-                cmt_outs = torch.zeros(len(data), device=device)
-                for j, file_tensors in enumerate(data):
-                    model = model.to(device)
-                    output = model(file_tensors[0].to(device), file_tensors[1].to(device),
-                                   file_tensors[2].to(device), file_tensors[3].to(device))
-                    cmt_outs[j] = output
-
-                agg_out = aggregate(cmt_outs)
-                loss = criterion(agg_out, torch.Tensor([label]).to(device))
+                label = data[4]
+                model = model.to(device)
+                output = model(data[0].to(device), data[1].to(device),
+                               data[2].to(device), data[3].to(device))
+                loss = criterion(output, torch.Tensor([label]).to(device))
                 total_loss += loss.item()
 
-                y_scores.append(agg_out.item())
+                y_scores.append(output.item())
                 y_true.append(label)
 
         val_loss = total_loss / len(dataset)
@@ -162,17 +154,12 @@ def test(model, dataset):
     with torch.no_grad():
         for i in range(len(dataset)):
             data = dataset[i]
-            if data is None:
-                continue
-            label = data[0][4]
-            cmt_outs = torch.zeros(len(data), device=device)
-            for j, file_tensors in enumerate(data):
-                model = model.to(device)
-                output = model(file_tensors[0].to(device), file_tensors[1].to(device),
-                               file_tensors[2].to(device), file_tensors[3].to(device))
-                cmt_outs[j] = output
+            label = data[4]
+            model = model.to(device)
+            output = model(data[0].to(device), data[1].to(device),
+                           data[2].to(device), data[3].to(device))
 
-            agg_out = aggregate(cmt_outs)
+            agg_out = aggregate(output)
             y_scores.append(agg_out.item())
             y_true.append(label)
 

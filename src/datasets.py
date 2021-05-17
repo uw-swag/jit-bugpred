@@ -1,7 +1,6 @@
 import json
 import os
 
-import pandas as pd
 import numpy as np
 import scipy.sparse as sp
 import torch
@@ -101,9 +100,10 @@ class ASTDataset(Dataset):
         return adj
 
     def get_embedding(self, file_node_tokens):
-        if file_node_tokens[0] == 'N o n e':
-            file_node_tokens[0] = 'None'
         for i, node_feat in enumerate(file_node_tokens):
+            file_node_tokens[i] = node_feat.strip()
+            if node_feat == 'N o n e':
+                file_node_tokens[i] = 'None'
             if ':' in node_feat:
                 feat_type = node_feat.split(':')[0]
                 file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[:3].upper() + '>'  # e.g. number: 14 -> number <NUM>
@@ -124,19 +124,35 @@ class ASTDataset(Dataset):
     def __getitem__(self, item):
         commit = self.ast_dict[item]
         label = self.labels[commit[0]]
-        training_data = []
+        b_node_tokens, b_edges = [], [[], []]
+        a_node_tokens, a_edges = [], [[], []]
+        b_nodes_so_far, a_nodes_so_far = 0, 0
         for file in commit[1]:
+            b_node_tokens += [' '.join(node) for node in file[1][0]]
+            b_edges = [
+                b_edges[0] + [s + b_nodes_so_far for s in file[1][1][0]],   # source nodes
+                b_edges[1] + [d + b_nodes_so_far for d in file[1][1][1]]    # destination nodes
+            ]
+            a_node_tokens += [' '.join(node) for node in file[2][0]]
+            a_edges = [
+                a_edges[0] + [s + a_nodes_so_far for s in file[2][1][0]],   # source nodes
+                a_edges[1] + [d + a_nodes_so_far for d in file[2][1][1]]    # destination nodes
+            ]
+
             b_n_nodes = len(file[1][0])
             a_n_nodes = len(file[2][0])
+            b_nodes_so_far += b_n_nodes
+            a_nodes_so_far += a_n_nodes
 
-            before_tokens = self.get_embedding([' '.join(node) for node in file[1][0]])
-            after_tokens = self.get_embedding([' '.join(node) for node in file[2][0]])
-            before_adj = self.get_adjacency_matrix(b_n_nodes, file[1][1][0], file[1][1][1])
-            after_adj = self.get_adjacency_matrix(a_n_nodes, file[2][1][0], file[2][1][1])
-            training_data.append([before_tokens, before_adj, after_tokens, after_adj, label])
+        before_embeddings = self.get_embedding(b_node_tokens)
+        before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
+        after_embeddings = self.get_embedding(a_node_tokens)
+        after_adj = self.get_adjacency_matrix(a_nodes_so_far, a_edges[0], a_edges[1])
+        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label]
 
-        if not len(training_data):
+        if not b_nodes_so_far and not a_nodes_so_far:
             print('commit {} has no file tensors.'.format(commit[0]))
+
         return training_data
 
 
