@@ -13,10 +13,10 @@ if __name__ == '__main__':
     batch_size = 1
     n_classes = 2
     data_dict = {
-        'train': '/subtrees_lowfile_train.json',
-        'val': '/subtrees_lowfile_val.json',
-        'test': '/subtrees_lowfile_test.json',
-        'labels': '/labels.json'
+        'train': '/openstack_train.json',
+        'val': '/openstack_valid.json',
+        'test': '/openstack_test.json',
+        'labels': '/openstack_labels.json'
     }
     dataset = ASTDataset(data_dict)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 1     # plus supernode node feature

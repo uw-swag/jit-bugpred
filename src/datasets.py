@@ -1,7 +1,6 @@
 import json
 import os
 
-import pandas as pd
 import numpy as np
 import scipy.sparse as sp
 import torch
