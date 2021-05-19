@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from models import JITGNN
 from datasets import ASTDataset
-from train import train, test, resume_training
+from train import train, test, resume_training, plot_training
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 
@@ -27,8 +27,7 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters())
 
     # training
-    stats = train(model, optimizer, criterion, epochs, dataset)
-    # plot_training(stats)
+    train(model, optimizer, criterion, epochs, dataset)
 
     # resume training
     # print('resume training')
@@ -36,8 +35,12 @@ if __name__ == '__main__':
     # print('checkpoint loaded.')
     # saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
     # print('stats loaded.')
-    # stats = resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, train_filename, val_filename)
-    # plot_training(stats)
+    # resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, dataset)
+
+    # plotting performance and loss plots
+    # saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
+    # print('stats loaded.')
+    # plot_training(saved_stats)
 
     # testing
     # model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))  # need map_location=torch.device('cpu') if on CPU

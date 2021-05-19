@@ -150,7 +150,6 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
     torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_final.pt'))
     print('* model_final saved.')
     print('\ntraining finished')
-    return all_training_aucs, all_training_losses, all_val_aucs, all_val_losses
 
 
 def test(model, dataset):
@@ -193,7 +192,7 @@ def test(model, dataset):
     print('testing finished')
 
 
-def resume_training(checkpoint, stats, model, optimizer, criterion, epochs, train_filename, val_filename):
+def resume_training(checkpoint, stats, model, optimizer, criterion, epochs, dataset):
     model.load_state_dict(checkpoint['model_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     for state in optimizer.state.values():
@@ -208,28 +207,32 @@ def resume_training(checkpoint, stats, model, optimizer, criterion, epochs, trai
         'all_val_aucs': stats['all_val_aucs']
     }
     print('all set ...')
-    stats = train(model, optimizer, criterion, epochs, train_filename, val_filename, so_far, resume)
-    return stats
+    train(model, optimizer, criterion, epochs, dataset, so_far, resume)
 
 
-# def plot_training(stats):
-#     all_training_aucs, all_training_losses, all_val_aucs, all_val_losses = stats
-#
-#     plt.figure()
-#     plt.plot(all_training_losses)
-#     plt.plot(all_val_losses)
-#     plt.title('Loss')
-#     plt.ylabel('Binary Cross Entropy')
-#     plt.xlabel('Epochs')
-#     plt.legend(['training loss', 'validation loss'], loc='upper right')
-#
-#     plt.figure()
-#     plt.plot(all_training_aucs)
-#     plt.plot(all_val_aucs)
-#     plt.title('Performance')
-#     plt.ylabel('AUC')
-#     plt.xlabel('Epochs')
-#     plt.legend(['training auc', 'validation auc'], loc='lower right')
+def plot_training(stats):
+    all_training_aucs = stats['all_training_aucs']
+    all_training_losses = stats['all_training_losses']
+    all_val_aucs = stats['all_val_aucs']
+    all_val_losses = stats['all_val_losses']
+
+    plt.figure()
+    plt.plot(all_training_losses)
+    plt.plot(all_val_losses)
+    plt.title('Loss')
+    plt.ylabel('Binary Cross Entropy')
+    plt.xlabel('Epochs')
+    plt.legend(['training loss', 'validation loss'], loc='upper right')
+    plt.savefig(os.path.join(BASE_PATH, 'trained_models/loss.png'))
+
+    plt.figure()
+    plt.plot(all_training_aucs)
+    plt.plot(all_val_aucs)
+    plt.title('Performance')
+    plt.ylabel('AUC')
+    plt.xlabel('Epochs')
+    plt.legend(['training auc', 'validation auc'], loc='lower right')
+    plt.savefig(os.path.join(BASE_PATH, 'trained_models/performance.png'))
 
 
 if __name__ == '__main__':
