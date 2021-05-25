@@ -72,7 +72,7 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
                 optimizer.step()
                 commit_loss += loss.item()
 
-                y_scores.append(output.item())
+                y_scores.append(torch.sigmoid(output).item())
                 y_true.append(label)
 
             mean_commit_loss = commit_loss / len(data)
@@ -121,7 +121,7 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
                 loss = criterion(agg_out, torch.Tensor([label]).to(device))
                 total_loss += loss.item()
 
-                y_scores.append(agg_out.item())
+                y_scores.append(torch.sigmoid(agg_out).item())
                 y_true.append(label)
 
         val_loss = total_loss / len(dataset)
@@ -172,7 +172,7 @@ def test(model, dataset):
                 cmt_outs[j] = output
 
             agg_out = aggregate(cmt_outs)
-            y_scores.append(agg_out.item())
+            y_scores.append(torch.tensor(agg_out).item())
             y_true.append(label)
 
     fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)
