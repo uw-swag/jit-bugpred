@@ -106,7 +106,6 @@ class JITGNN(nn.Module):
         self.gnn23 = GraphConvolution(message_size, message_size)
         self.gnn24 = GraphConvolution(message_size, message_size)
         self.fc = nn.Linear(2 * message_size, 1)
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, b_x, b_adj, a_x, a_adj):
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
@@ -116,7 +115,6 @@ class JITGNN(nn.Module):
         a_supernode = a_node_embeddings[-1, :]
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
 
-        hidden = self.fc(supernodes)
-        output = self.sigmoid(hidden)
+        output = self.fc(supernodes)
         return output
 

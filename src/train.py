@@ -28,10 +28,6 @@ def evaluate(label, output):
     return roc_auc(np.array(label), np.array(output))
 
 
-def aggregate(tensors):
-    return torch.FloatTensor([torch.max(tensors)]).to(device)
-
-
 def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
 
     if resume:
@@ -71,7 +67,7 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
             optimizer.step()
             commit_loss += loss.item()
 
-            y_scores.append(output.item())
+            y_scores.append(torch.sigmoid(output).item())
             y_true.append(label)
 
             mean_commit_loss = commit_loss / len(data)
@@ -113,7 +109,7 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
                 loss = criterion(output, torch.Tensor([label]).to(device))
                 total_loss += loss.item()
 
-                y_scores.append(output.item())
+                y_scores.append(torch.sigmoid(output).item())
                 y_true.append(label)
 
         val_loss = total_loss / len(dataset)
@@ -158,8 +154,7 @@ def test(model, dataset):
             output = model(data[0].to(device), data[1].to(device),
                            data[2].to(device), data[3].to(device))
 
-            agg_out = aggregate(output)
-            y_scores.append(agg_out.item())
+            y_scores.append(torch.sigmoid(output).item())
             y_true.append(label)
 
     fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)

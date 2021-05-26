@@ -23,7 +23,7 @@ if __name__ == '__main__':
     message_size = 32
 
     model = JITGNN(hidden_size, message_size)
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters())
 
     # training
