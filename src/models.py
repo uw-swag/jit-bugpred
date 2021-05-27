@@ -116,5 +116,5 @@ class JITGNN(nn.Module):
         supernodes = torch.cat((b_supernode, a_supernode), 0)   # maybe a distance measure later
 
         output = self.fc(supernodes)
-        return output
+        return output, supernodes
 

@@ -1,9 +1,10 @@
 import os
 import torch
+from sklearn.ensemble import RandomForestClassifier
 from torch import nn
 from models import JITGNN
 from datasets import ASTDataset
-from train import train, test, resume_training, plot_training
+from train import pretrain, test, resume_training, plot_training, train
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 
@@ -27,7 +28,11 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters())
 
     # training
-    train(model, optimizer, criterion, epochs, dataset)
+    pretrain(model, optimizer, criterion, epochs, dataset)
+    train_features = torch.load(os.path.join(BASE_PATH, 'trained_models/train_features.pt'))
+    train_labels = torch.load(os.path.join(BASE_PATH, 'trained_models/train_labels.pt'))
+    clf = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1)
+    train(clf, train_features, train_labels)
 
     # resume training
     # print('resume training')
