@@ -7,7 +7,6 @@ import torch
 from metrics import roc_auc
 import matplotlib.pyplot as plt
 
-
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
 
@@ -30,7 +29,6 @@ def evaluate(label, output):
 
 
 def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
-
     if resume:
         all_training_aucs = resume['all_training_aucs']
         all_training_losses = resume['all_training_losses']
@@ -172,11 +170,13 @@ def test(model, dataset, clf):
             label = data[4]
             model = model.to(device)
             _, features = model(data[0].to(device), data[1].to(device),
-                                     data[2].to(device), data[3].to(device))
+                                data[2].to(device), data[3].to(device))
             features_list.append(features)
             label_list.append(label)
 
-    fpr, tpr, thresholds, auc = evaluate(label_list, clf.predict_proba(features)[:, 1])
+    features = torch.vstack(features_list).cpu().detach().numpy()
+    labels = torch.Tensor(label_list).cpu().detach().numpy()
+    fpr, tpr, thresholds, auc = evaluate(labels, clf.predict_proba(features)[:, 1])
     print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
 
     plt.clf()

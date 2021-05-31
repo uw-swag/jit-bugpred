@@ -48,5 +48,4 @@ if __name__ == '__main__':
     # plot_training(saved_stats)
 
     # testing
-    # model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))  # need map_location=torch.device('cpu') if on CPU
-    # test(model, dataset)
+    test(model, dataset, clf)
