@@ -29,8 +29,8 @@ if __name__ == '__main__':
 
     # training
     pretrain(model, optimizer, criterion, epochs, dataset)
-    train_features = torch.load(os.path.join(BASE_PATH, 'trained_models/train_features.pt'))
-    train_labels = torch.load(os.path.join(BASE_PATH, 'trained_models/train_labels.pt'))
+    train_features = torch.load(os.path.join(BASE_PATH, 'trained_models/train_features.pt')).cpu().detach().numpy()
+    train_labels = torch.load(os.path.join(BASE_PATH, 'trained_models/train_labels.pt')).cpu().detach().numpy()
     clf = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1)
     train(clf, train_features, train_labels)
 

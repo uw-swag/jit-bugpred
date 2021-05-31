@@ -152,9 +152,9 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
 
 
 def train(clf, train_features, train_labels):
-    percent_80 = train_features.shape[0] * 0.8
+    percent_80 = int(train_features.shape[0] * 0.8)
     clf.fit(train_features[:percent_80], train_labels[:percent_80])
-    prob = clf.predict_proba(train_features)[percent_80:, 1]
+    prob = clf.predict_proba(train_features[percent_80:])[:, 1]
     _, _, _, auc = evaluate(train_labels[percent_80:], prob)
     print('metrics: AUC={}\n'.format(auc))
 
