@@ -5,12 +5,17 @@ from torch import nn
 from models import JITGNN
 from datasets import ASTDataset
 from train import pretrain, test, resume_training, plot_training, train
+import argparse
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 
 
 if __name__ == '__main__':
-    epochs = 20
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test", action="store_true")
+    args = parser.parse_args()
+
+    epochs = 30
     batch_size = 1
     n_classes = 2
     data_dict = {
@@ -47,5 +52,5 @@ if __name__ == '__main__':
     # print('stats loaded.')
     # plot_training(saved_stats)
 
-    # testing
-    test(model, dataset, clf)
+    if args.test:
+        test(model, dataset, clf)

@@ -3,6 +3,10 @@ import os
 import time
 import numpy as np
 import torch
+from imblearn.over_sampling import SMOTE
+from scipy.optimize import differential_evolution
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
 
 from metrics import roc_auc
 import matplotlib.pyplot as plt
@@ -149,11 +153,30 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
     print('\ntraining finished')
 
 
+def objective_func(k, train_features, train_labels, valid_features, valid_labels):
+    smote = SMOTE(random_state=42, k_neighbors=int(np.round(k)), n_jobs=32)
+    train_feature_res, train_label_res = smote.fit_resample(train_features, train_labels)
+    clf = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1)
+    clf.fit(train_feature_res, train_label_res)
+    prob = clf.predict_proba(valid_features)[:, 1]
+    auc = roc_auc_score(valid_labels, prob)
+
+    return -auc
+
+
 def train(clf, train_features, train_labels):
     percent_80 = int(train_features.shape[0] * 0.8)
-    clf.fit(train_features[:percent_80], train_labels[:percent_80])
-    prob = clf.predict_proba(train_features[percent_80:])[:, 1]
-    _, _, _, auc = evaluate(train_labels[percent_80:], prob)
+    train_features, valid_features = train_features[:percent_80], train_features[percent_80:]
+    train_labels, valid_labels = train_labels[:percent_80], train_labels[percent_80:]
+    bounds = [(1, 20)]
+    opt = differential_evolution(objective_func, bounds, args=(train_features, train_labels,
+                                                               valid_features, valid_labels),
+                                 popsize=10, mutation=0.7, recombination=0.3, seed=0)
+    smote = SMOTE(random_state=42, n_jobs=32, k_neighbors=int(np.round(opt.x)))
+    train_features, train_labels = smote.fit_resample(train_features, train_labels)
+    clf.fit(train_features, train_labels)
+    prob = clf.predict_proba(valid_features)[:, 1]
+    _, _, _, auc = evaluate(valid_labels, prob)
     print('metrics: AUC={}\n'.format(auc))
 
 
