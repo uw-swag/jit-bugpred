@@ -59,6 +59,7 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
 
         model.train()
         dataset.set_mode('train')
+        print('len(data) is {}'.format(str(len(dataset))))
         for i in range(len(dataset)):
             data = dataset[i]
             label = data[4]
@@ -107,6 +108,7 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
 
         model.eval()
         dataset.set_mode('val')
+        print('len(data) is {}'.format(str(len(dataset))))
         with torch.no_grad():
             for i in range(len(dataset)):
                 data = dataset[i]
@@ -182,25 +184,32 @@ def train(clf, train_features, train_labels):
 
 def test(model, dataset, clf):
     print('testing')
+    y_scores = []
+    y_true = []
     features_list = []
     label_list = []
 
     model.eval()
     dataset.set_mode('test')
+    print('len(data) is {}'.format(str(len(dataset))))
     with torch.no_grad():
         for i in range(len(dataset)):
             data = dataset[i]
             label = data[4]
             model = model.to(device)
-            _, features = model(data[0].to(device), data[1].to(device),
-                                data[2].to(device), data[3].to(device))
+            output, features = model(data[0].to(device), data[1].to(device),
+                                     data[2].to(device), data[3].to(device))
             features_list.append(features)
             label_list.append(label)
+            y_scores.append(torch.sigmoid(output).item())
+            y_true.append(label)
 
-    features = torch.vstack(features_list).cpu().detach().numpy()
-    labels = torch.Tensor(label_list).cpu().detach().numpy()
-    fpr, tpr, thresholds, auc = evaluate(labels, clf.predict_proba(features)[:, 1])
+    fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)
     print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
+    # features = torch.vstack(features_list).cpu().detach().numpy()
+    # labels = torch.Tensor(label_list).cpu().detach().numpy()
+    # fpr, tpr, thresholds, auc = evaluate(labels, clf.predict_proba(features)[:, 1])
+    # print('test rf (resampled) metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
 
     plt.clf()
     plt.title('Receiver Operating Characteristic')
