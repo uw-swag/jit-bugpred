@@ -39,24 +39,26 @@ class ASTDataset(Dataset):
                     if len(node_feat) > 1:  # None
                         corpus.append(node_feat)
                     else:
-                        feature = node_feat[0]
-                        if ':' in node_feat[0]:
-                            feat_type = node_feat[0].split(':')[0]
-                            feature = feat_type + ' ' + '<' + feat_type[
-                                                              :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
-                        corpus.append(feature)
+                        corpus.append(node_feat[0])
+                        # feature = node_feat[0]
+                        # if ':' in node_feat[0]:
+                        #     feat_type = node_feat[0].split(':')[0]
+                        #     feature = feat_type + ' ' + '<' + feat_type[
+                        #                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+                        # corpus.append(feature)
                 for node_feat in f[2][0]:
                     if len(node_feat) > 1:  # None
                         corpus.append(node_feat)
                     else:
-                        feature = node_feat[0]
-                        if ':' in node_feat[0]:
-                            feat_type = node_feat[0].split(':')[0]
-                            feature = feat_type + ' ' + '<' + feat_type[
-                                                              :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
-                        corpus.append(feature)
+                        corpus.append(node_feat[0])
+                        # feature = node_feat[0]
+                        # if ':' in node_feat[0]:
+                        #     feat_type = node_feat[0].split(':')[0]
+                        #     feature = feat_type + ' ' + '<' + feat_type[
+                        #                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+                        # corpus.append(feature)
 
-        vectorizer = CountVectorizer(binary=True)
+        vectorizer = CountVectorizer(lowercase=False, preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
 
     def set_mode(self, mode):

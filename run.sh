@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH --account=def-m2nagapp
-#SBATCH --gres=gpu:v100:1
+#SBATCH --gres=gpu:p100:1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=12G
 #SBATCH --time=0-12:00:00
 #SBATCH --mail-user=hosseinkeshavarz1997@gmail.com
 #SBATCH --mail-type=ALL
+#SBATCH --output=10_train_test.out
 
 #module load python/3.6
 #virtualenv --no-download $SLURM_TMPDIR/venv
@@ -21,4 +22,4 @@
 source venv/bin/activate
 which python
 #CUDA_LAUNCH_BLOCKING=1 python -u src/main.py
-python -u src/main.py
+python -u src/main.py --test

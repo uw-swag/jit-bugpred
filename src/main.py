@@ -15,7 +15,7 @@ if __name__ == '__main__':
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
 
-    epochs = 30
+    epochs = 40
     batch_size = 1
     n_classes = 2
     data_dict = {
@@ -26,6 +26,7 @@ if __name__ == '__main__':
     }
     dataset = ASTDataset(data_dict)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 1     # plus supernode node feature
+    print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 
     model = JITGNN(hidden_size, message_size)
@@ -48,9 +49,11 @@ if __name__ == '__main__':
     # resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, dataset)
 
     # plotting performance and loss plots
-    # saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
-    # print('stats loaded.')
-    # plot_training(saved_stats)
+    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
+    print('stats loaded.')
+    plot_training(saved_stats)
 
     if args.test:
+        # need map_location=torch.device('cpu') if on CPU
+        model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
         test(model, dataset, clf)

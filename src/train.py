@@ -25,7 +25,7 @@ def time_since(since):
     s -= h * 3600
     m = math.floor(s / 60)
     s -= m * 60
-    return '{}h {}min {}sec'.format(h, m, s)
+    return '{}h {}min {:.2f} sec'.format(h, m, s)
 
 
 def evaluate(label, output):
@@ -63,7 +63,6 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
         for i in range(len(dataset)):
             data = dataset[i]
             label = data[4]
-            commit_loss = 0
             optimizer.zero_grad()
             model = model.to(device)
             output, features = model(data[0].to(device), data[1].to(device),
@@ -73,16 +72,14 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
             loss = criterion(output, torch.Tensor([label]).to(device))
             loss.backward()
             optimizer.step()
-            commit_loss += loss.item()
 
             y_scores.append(torch.sigmoid(output).item())
             y_true.append(label)
 
-            mean_commit_loss = commit_loss / len(data)
-            total_loss += mean_commit_loss
+            total_loss += loss.item()
             if label:
                 print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
-                    i, len(dataset), mean_commit_loss))
+                    i, len(dataset), loss.item()))
 
         print('\nepoch duration: {}'.format(time_since(start)))
 
@@ -209,7 +206,7 @@ def test(model, dataset, clf):
     # features = torch.vstack(features_list).cpu().detach().numpy()
     # labels = torch.Tensor(label_list).cpu().detach().numpy()
     # fpr, tpr, thresholds, auc = evaluate(labels, clf.predict_proba(features)[:, 1])
-    # print('test rf (resampled) metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
+    # print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
 
     plt.clf()
     plt.title('Receiver Operating Characteristic')
