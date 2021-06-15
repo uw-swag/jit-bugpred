@@ -103,12 +103,12 @@ class ASTDataset(Dataset):
 
     def get_embedding(self, file_node_tokens):
         for i, node_feat in enumerate(file_node_tokens):
-            file_node_tokens[i] = node_feat.strip()
+            # file_node_tokens[i] = node_feat.strip()
             if node_feat == 'N o n e':
                 file_node_tokens[i] = 'None'
-            if ':' in node_feat:
-                feat_type = node_feat.split(':')[0]
-                file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[:3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+            # if ':' in node_feat:
+            #     feat_type = node_feat.split(':')[0]
+            #     file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[:3].upper() + '>'  # e.g. number: 14 -> number <NUM>
         # fix the data later to remove the code above.
         features = self.vectorizer_model.transform(file_node_tokens).astype(np.float32)
         # add supernode

@@ -7,6 +7,7 @@
 #SBATCH --mail-user=hosseinkeshavarz1997@gmail.com
 #SBATCH --mail-type=ALL
 #SBATCH --output=10_train_test.out
+#SBATCH --open-mode=append
 
 #module load python/3.6
 #virtualenv --no-download $SLURM_TMPDIR/venv
