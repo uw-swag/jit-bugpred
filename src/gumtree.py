@@ -125,13 +125,14 @@ class SubTreeExtractor:
 
         vs = list(self.subtree_nodes)
         es = list(self.subtree_edges)
+        colors = ['red' if node_id in self.red_nodes else "blue" for node_id in vs]
         features = [[self.node_dict[node_id]] for node_id in vs]
         edges = [[], []]
         for src, dst in es:
             edges[0].append(vs.index(src))
             edges[1].append(vs.index(dst))
 
-        return features, edges
+        return features, edges, colors
 
     def generate_dotfile(self):
         content = 'digraph G {\nnode [style=filled];\nsubgraph cluster_dst {\n'
@@ -196,14 +197,14 @@ def store_subtrees(file):
                 ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
         print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
         if i % 100 == 99:
-            with open(os.path.join(data_path, 'subtrees_jitlinediff.json'), 'w') as fp:
+            with open(os.path.join(data_path, 'subtrees_jitlinediff_color.json'), 'w') as fp:
                 json.dump(ast_dict, fp)
             print('\n\n***** ast_dict backup saved at iteration {}. *****\n\n'.format(i + 1))
     print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
-    with open(os.path.join(data_path, 'subtrees_jitlinediff.json'), 'w') as fp:
+    with open(os.path.join(data_path, 'subtrees_jitlinediff_color.json'), 'w') as fp:
         json.dump(ast_dict, fp)
-    print('\n** subtrees_jitlinediff.json saved. **')
+    print('\n** subtrees_jitlinediff_color.json saved. **')
 
 
 if __name__ == '__main__':

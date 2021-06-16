@@ -39,24 +39,24 @@ class ASTDataset(Dataset):
                     if len(node_feat) > 1:  # None
                         corpus.append(node_feat)
                     else:
-                        corpus.append(node_feat[0])
-                        # feature = node_feat[0]
-                        # if ':' in node_feat[0]:
-                        #     feat_type = node_feat[0].split(':')[0]
-                        #     feature = feat_type + ' ' + '<' + feat_type[
-                        #                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
-                        # corpus.append(feature)
+                        # corpus.append(node_feat[0])
+                        feature = node_feat[0]
+                        if ':' in node_feat[0]:
+                            feat_type = node_feat[0].split(':')[0]
+                            feature = feat_type + ' ' + '<' + feat_type[
+                                                              :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+                        corpus.append(feature)
                 for node_feat in f[2][0]:
                     if len(node_feat) > 1:  # None
                         corpus.append(node_feat)
                     else:
-                        corpus.append(node_feat[0])
-                        # feature = node_feat[0]
-                        # if ':' in node_feat[0]:
-                        #     feat_type = node_feat[0].split(':')[0]
-                        #     feature = feat_type + ' ' + '<' + feat_type[
-                        #                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
-                        # corpus.append(feature)
+                        # corpus.append(node_feat[0])
+                        feature = node_feat[0]
+                        if ':' in node_feat[0]:
+                            feat_type = node_feat[0].split(':')[0]
+                            feature = feat_type + ' ' + '<' + feat_type[
+                                                              :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+                        corpus.append(feature)
 
         vectorizer = CountVectorizer(lowercase=False, preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
@@ -95,27 +95,30 @@ class ASTDataset(Dataset):
         # build symmetric adjacency matrix
         adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
         # add supernode
-        adj = sp.vstack([adj, sp.coo_matrix(np.ones((1, adj.shape[1]), dtype=np.float32))])
-        adj = sp.hstack([adj, sp.coo_matrix(np.zeros((adj.shape[0], 1), dtype=np.float32))])
+        adj = sp.vstack([adj, np.ones((1, adj.shape[1]), dtype=np.float32)])
+        adj = sp.hstack([adj, np.zeros((adj.shape[0], 1), dtype=np.float32)])
         adj = self.normalize(adj + sp.eye(adj.shape[0]))
         adj = self.sparse_mx_to_torch_sparse_tensor(adj)
         return adj
 
-    def get_embedding(self, file_node_tokens):
+    def get_embedding(self, file_node_tokens, colors):
         for i, node_feat in enumerate(file_node_tokens):
-            # file_node_tokens[i] = node_feat.strip()
+            file_node_tokens[i] = node_feat.strip()
             if node_feat == 'N o n e':
                 file_node_tokens[i] = 'None'
-            # if ':' in node_feat:
-            #     feat_type = node_feat.split(':')[0]
-            #     file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[:3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+            if ':' in node_feat:
+                feat_type = node_feat.split(':')[0]
+                file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[:3].upper() + '>'  # e.g. number: 14 -> number <NUM>
         # fix the data later to remove the code above.
         features = self.vectorizer_model.transform(file_node_tokens).astype(np.float32)
+        # add color feature at the end of features
+        color_feat = [1 if c == 'red' else 0 for c in colors]
+        features = sp.hstack([features, np.array(color_feat, dtype=np.float32).reshape(-1, 1)])
         # add supernode
-        features = sp.hstack([features, sp.csr_matrix(np.zeros((features.shape[0], 1), dtype=np.float32))])
+        features = sp.hstack([features, np.zeros((features.shape[0], 1), dtype=np.float32)])
         supernode_feat = np.zeros((1, features.shape[1]), dtype=np.float32)
         supernode_feat[-1, -1] = 1
-        features = sp.vstack([features, sp.csr_matrix(supernode_feat)])
+        features = sp.vstack([features, supernode_feat])
         features = self.normalize(features)
         features = torch.FloatTensor(np.array(features.todense()))
         return features
@@ -126,16 +129,18 @@ class ASTDataset(Dataset):
     def __getitem__(self, item):
         commit = self.ast_dict[item]
         label = self.labels[commit[0]]
-        b_node_tokens, b_edges = [], [[], []]
-        a_node_tokens, a_edges = [], [[], []]
+        b_node_tokens, b_edges, b_colors = [], [[], []], []
+        a_node_tokens, a_edges, a_colors = [], [[], []], []
         b_nodes_so_far, a_nodes_so_far = 0, 0
         for file in commit[1]:
             b_node_tokens += [' '.join(node) for node in file[1][0]]
+            b_colors += [c for c in file[1][2]]
             b_edges = [
                 b_edges[0] + [s + b_nodes_so_far for s in file[1][1][0]],   # source nodes
                 b_edges[1] + [d + b_nodes_so_far for d in file[1][1][1]]    # destination nodes
             ]
             a_node_tokens += [' '.join(node) for node in file[2][0]]
+            a_colors += [c for c in file[2][2]]
             a_edges = [
                 a_edges[0] + [s + a_nodes_so_far for s in file[2][1][0]],   # source nodes
                 a_edges[1] + [d + a_nodes_so_far for d in file[2][1][1]]    # destination nodes
@@ -146,9 +151,9 @@ class ASTDataset(Dataset):
             b_nodes_so_far += b_n_nodes
             a_nodes_so_far += a_n_nodes
 
-        before_embeddings = self.get_embedding(b_node_tokens)
+        before_embeddings = self.get_embedding(b_node_tokens, b_colors)
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
-        after_embeddings = self.get_embedding(a_node_tokens)
+        after_embeddings = self.get_embedding(a_node_tokens, a_colors)
         after_adj = self.get_adjacency_matrix(a_nodes_so_far, a_edges[0], a_edges[1])
         training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label]
 
