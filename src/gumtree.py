@@ -197,18 +197,18 @@ def store_subtrees(file):
                 ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
         print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
         if i % 100 == 99:
-            with open(os.path.join(data_path, 'subtrees_jitlinediff_color.json'), 'w') as fp:
+            with open(os.path.join(data_path, 'subtrees_pydriller_color.json'), 'w') as fp:
                 json.dump(ast_dict, fp)
             print('\n\n***** ast_dict backup saved at iteration {}. *****\n\n'.format(i + 1))
     print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
-    with open(os.path.join(data_path, 'subtrees_jitlinediff_color.json'), 'w') as fp:
+    with open(os.path.join(data_path, 'subtrees_pydriller_color.json'), 'w') as fp:
         json.dump(ast_dict, fp)
-    print('\n** subtrees_jitlinediff_color.json saved. **')
+    print('\n** subtrees_pydriller_color.json saved. **')
 
 
 if __name__ == '__main__':
-    store_subtrees('/newjitline_diff.csv')
+    store_subtrees('/newrawdata.csv')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()

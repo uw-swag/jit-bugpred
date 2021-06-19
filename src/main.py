@@ -19,9 +19,9 @@ if __name__ == '__main__':
     batch_size = 1
     n_classes = 2
     data_dict = {
-        'train': '/openstack_train.json',
-        'val': '/openstack_valid.json',
-        'test': '/openstack_test.json',
+        'train': '/openstack_train_color.json',
+        'val': '/openstack_valid_color.json',
+        'test': '/openstack_test_color.json',
         'labels': '/openstack_labels.json'
     }
     dataset = ASTDataset(data_dict)

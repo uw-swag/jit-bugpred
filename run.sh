@@ -3,10 +3,10 @@
 #SBATCH --gres=gpu:p100:1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem=12G
-#SBATCH --time=0-12:00:00
+#SBATCH --time=0-05:00:00
 #SBATCH --mail-user=hosseinkeshavarz1997@gmail.com
 #SBATCH --mail-type=ALL
-#SBATCH --output=10_train_test.out
+#SBATCH --output=14_train_test.out
 #SBATCH --open-mode=append
 
 #module load python/3.6
