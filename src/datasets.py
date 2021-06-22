@@ -106,6 +106,8 @@ class ASTDataset(Dataset):
             file_node_tokens[i] = node_feat.strip()
             if node_feat == 'N o n e':
                 file_node_tokens[i] = 'None'
+                colors.insert(i, 'blue')
+                assert colors[i] == 'blue'
             if ':' in node_feat:
                 feat_type = node_feat.split(':')[0]
                 file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[:3].upper() + '>'  # e.g. number: 14 -> number <NUM>
