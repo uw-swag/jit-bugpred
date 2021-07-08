@@ -5,9 +5,10 @@ import numpy as np
 import torch
 from imblearn.over_sampling import SMOTE
 from scipy.optimize import differential_evolution
+from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
-
+from sklearn.metrics import roc_auc_score, precision_recall_curve
+import pandas as pd
 from metrics import roc_auc
 import matplotlib.pyplot as plt
 
@@ -201,6 +202,7 @@ def test(model, dataset, clf):
             y_scores.append(torch.sigmoid(output).item())
             y_true.append(label)
 
+    pd.DataFrame({'y_true': y_true, 'y_score': y_scores}).to_csv(os.path.join(data_path, 'test_result.csv'))
     fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)
     print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
     # features = torch.vstack(features_list).cpu().detach().numpy()
@@ -218,6 +220,17 @@ def test(model, dataset, clf):
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.savefig(os.path.join(BASE_PATH, 'trained_models/roc.png'))
+
+    p, r, _ = precision_recall_curve(y_true, y_scores)
+    plt.clf()
+    plt.title('Precision-Recall')
+    plt.plot(r, p, 'b', label='AUC = %0.2f' % metrics.auc(r, p))
+    plt.legend(loc='upper right')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.ylabel('Precision')
+    plt.xlabel('Recall')
+    plt.savefig(os.path.join(BASE_PATH, 'trained_models/pr.png'))
 
     print('testing finished')
 

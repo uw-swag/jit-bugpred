@@ -25,7 +25,7 @@ if __name__ == '__main__':
         'labels': '/openstack_labels.json'
     }
     dataset = ASTDataset(data_dict)
-    hidden_size = len(dataset.vectorizer_model.vocabulary_) + 1     # plus supernode node feature
+    hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2     # plus supernode node feature and node colors
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 

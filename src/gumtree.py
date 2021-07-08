@@ -158,20 +158,33 @@ def time_since(since):
 
 def store_subtrees(file):
     gumtree = GumTreeDiff()
-    df = pd.read_csv(data_path + file, dtype={'revd': str, 'buggy': str, 'fix': str})
-    projects = [p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
+    language = '.java'
+    df = pd.read_csv(data_path + file)
+    projects = ['repos/' + p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
+    projects.append('repos/hadoop')
     # projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
-    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())     # this skips unkowncommits automatically
+    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist(),
+                                   only_modifications_with_file_types=[language])     # this skips unkowncommits automatically
     dataset_start = time.time()
-    ast_dict = dict()
+    with open(os.path.join(data_path, 'subtrees_apachejava_color.json')) as file:
+        ast_dict = json.load(file)
     for i, commit in enumerate(repo_mining.traverse_commits()):
+        if commit.hash in ast_dict.keys():
+            print('already exist.')
+            continue
         commit_start = time.time()
+        if commit.files > 100:
+            print('too many files.')
+            continue
+        if commit.lines > 10000:
+            print('too many lines.')
+            continue
         for m in commit.modifications:
-            if not m.filename.endswith('.py') or m.change_type is not ModificationType.MODIFY:
+            if not m.filename.endswith(language):
                 continue
-            filepath = m.new_path
-            before = m.source_code_before
-            after = m.source_code
+            filepath = m.new_path if m.new_path is not None else m.old_path
+            before = m.source_code_before if m.source_code_before is not None else ''
+            after = m.source_code if m.source_code is not None else ''
             f = (filepath, before, after)
             try:
                 b_dot, a_dot = gumtree.get_dotfiles(f)
@@ -184,6 +197,7 @@ def store_subtrees(file):
             a_subtree = subtree.extract_subtree()
 
             # to exclude ast with no red nodes (which have empty subtrees)
+            # this includes F1 in McIntosh & Kamei (comment and whitespace filtering)
             if len(b_subtree[0]) == 0 and len(a_subtree[0]) == 0:
                 continue
             elif len(b_subtree[0]) == 0:
@@ -197,18 +211,18 @@ def store_subtrees(file):
                 ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
         print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
         if i % 100 == 99:
-            with open(os.path.join(data_path, 'subtrees_pydriller_color.json'), 'w') as fp:
+            with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
                 json.dump(ast_dict, fp)
             print('\n\n***** ast_dict backup saved at iteration {}. *****\n\n'.format(i + 1))
     print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
-    with open(os.path.join(data_path, 'subtrees_pydriller_color.json'), 'w') as fp:
+    with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
         json.dump(ast_dict, fp)
-    print('\n** subtrees_pydriller_color.json saved. **')
+    print('\n** subtrees_apachejava_color.json saved. **')
 
 
 if __name__ == '__main__':
-    store_subtrees('/newrawdata.csv')
+    store_subtrees('/apachejava.csv')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()
