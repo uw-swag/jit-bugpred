@@ -1,11 +1,15 @@
 import json
+import logging
 import math
 import os
 import re
 import subprocess
 import time
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
+
 import pandas as pd
-from pydriller import RepositoryMining, ModificationType
+from pydriller import RepositoryMining
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -126,7 +130,7 @@ class SubTreeExtractor:
         vs = list(self.subtree_nodes)
         es = list(self.subtree_edges)
         colors = ['red' if node_id in self.red_nodes else "blue" for node_id in vs]
-        features = [[self.node_dict[node_id]] for node_id in vs]
+        features = [[self.node_dict[node_id]] if node_id in self.node_dict else ['unknown'] for node_id in vs]
         edges = [[], []]
         for src, dst in es:
             edges[0].append(vs.index(src))
@@ -156,31 +160,41 @@ def time_since(since):
     return '{} min {:.2f} sec'.format(m, s)
 
 
+def has_modification_with_file_type(commit, types):
+    for mod in commit.modifications:
+        if mod.filename.endswith(tuple(types)):
+            return True
+    return False
+
+
 def store_subtrees(file):
     gumtree = GumTreeDiff()
-    language = '.java'
+    languages = ['.java']
     df = pd.read_csv(data_path + file)
-    projects = ['repos/' + p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
-    projects.append('repos/hadoop')
+    projects = ['../repos/' + p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
+    projects.append('../repos/hadoop')
     # projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
-    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist(),
-                                   only_modifications_with_file_types=[language])     # this skips unkowncommits automatically
+    # this skips unkown commits automatically
+    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())
     dataset_start = time.time()
     with open(os.path.join(data_path, 'subtrees_apachejava_color.json')) as file:
         ast_dict = json.load(file)
-    for i, commit in enumerate(repo_mining.traverse_commits()):
-        if commit.hash in ast_dict.keys():
-            print('already exist.')
-            continue
+    for commit in repo_mining.traverse_commits():
         commit_start = time.time()
+        if commit.hash in ast_dict.keys():
+            logging.info('Already exists')
+            continue
         if commit.files > 100:
             print('too many files.')
             continue
         if commit.lines > 10000:
             print('too many lines.')
             continue
+        if not has_modification_with_file_type(commit, languages):
+            logging.info('No file in given language')
+            continue
         for m in commit.modifications:
-            if not m.filename.endswith(language):
+            if not m.filename.endswith(tuple(languages)):
                 continue
             filepath = m.new_path if m.new_path is not None else m.old_path
             before = m.source_code_before if m.source_code_before is not None else ''
@@ -189,7 +203,7 @@ def store_subtrees(file):
             try:
                 b_dot, a_dot = gumtree.get_dotfiles(f)
             except SyntaxError:
-                print('\t\t\t\tsource code contains syntax error. PASS!')
+                print('\t\t\t\tsource code has syntax error. PASS!')
                 continue
             subtree = SubTreeExtractor(b_dot)
             b_subtree = subtree.extract_subtree()
@@ -210,10 +224,10 @@ def store_subtrees(file):
             else:
                 ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
         print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
-        if i % 100 == 99:
+        if len(ast_dict) % 100 == 0:
             with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
                 json.dump(ast_dict, fp)
-            print('\n\n***** ast_dict backup saved at iteration {}. *****\n\n'.format(i + 1))
+            print('\n\n***** ast_dict backup saved at size {}. *****\n\n'.format(len(ast_dict)))
     print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
     with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
@@ -222,6 +236,12 @@ def store_subtrees(file):
 
 
 if __name__ == '__main__':
+    Path("logs/").mkdir(parents=True, exist_ok=True)
+    logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
+                        level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S',
+                        handlers=[
+                            RotatingFileHandler(filename='logs/pydriller.log', maxBytes=5 * 1024 * 1024,
+                                                backupCount=5)])
     store_subtrees('/apachejava.csv')
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
