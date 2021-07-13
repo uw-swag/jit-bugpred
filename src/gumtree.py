@@ -9,7 +9,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import pandas as pd
-from pydriller import RepositoryMining
+from pydriller import GitRepository
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -167,21 +167,25 @@ def has_modification_with_file_type(commit, types):
     return False
 
 
-def store_subtrees(file):
+def store_subtrees(filename):
     gumtree = GumTreeDiff()
-    languages = ['.java']
-    df = pd.read_csv(data_path + file)
-    projects = ['repos/' + p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
-    projects.append('repos/hadoop')
-    # projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
-    # this skips unkown commits automatically
-    repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())
-    dataset_start = time.time()
     with open(os.path.join(data_path, 'subtrees_apachejava_color.json')) as file:
         ast_dict = json.load(file)
     print(len(ast_dict))
-    for commit in repo_mining.traverse_commits():
-        commit_start = time.time()
+    df = pd.read_csv(data_path + filename)
+    commits = df['commit_id']
+    projects = df['project']
+    languages = ['.java']
+    # projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
+    # this skips unkown commits automatically
+    # repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist()[:20])
+    dataset_start = time.time()
+    for i in range(len(commits)):
+        try:
+            commit = GitRepository('repos/' + projects[i].split('/')[1]).get_commit(commits[i])
+        except ValueError:      # for hadoop repos
+            commit = GitRepository('repos/' + projects[i].split('/')[1].split('-')[0]).get_commit(commits[i])
+        logging.info('Commit #%s in %s from %s', commit.hash, commit.committer_date, commit.author.name)
         if commit.hash in ast_dict:
             logging.info('Already exists')
             continue
@@ -194,6 +198,7 @@ def store_subtrees(file):
         if not has_modification_with_file_type(commit, languages):
             logging.info('No file in given language')
             continue
+        commit_start = time.time()
         for m in commit.modifications:
             if not m.filename.endswith(tuple(languages)):
                 continue
