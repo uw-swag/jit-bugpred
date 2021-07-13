@@ -171,17 +171,18 @@ def store_subtrees(file):
     gumtree = GumTreeDiff()
     languages = ['.java']
     df = pd.read_csv(data_path + file)
-    projects = ['../repos/' + p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
-    projects.append('../repos/hadoop')
+    projects = ['repos/' + p.split('/')[1] for p in df['project'].unique() if p != 'unkowncommit']     # if repos not available locally use below
+    projects.append('repos/hadoop')
     # projects = ['https://github.com/' + p + '.git' for p in df['project'].unique() if p != 'unkowncommit']
     # this skips unkown commits automatically
     repo_mining = RepositoryMining(projects, only_commits=df['commit_id'].tolist())
     dataset_start = time.time()
     with open(os.path.join(data_path, 'subtrees_apachejava_color.json')) as file:
         ast_dict = json.load(file)
+    print(len(ast_dict))
     for commit in repo_mining.traverse_commits():
         commit_start = time.time()
-        if commit.hash in ast_dict.keys():
+        if commit.hash in ast_dict:
             logging.info('Already exists')
             continue
         if commit.files > 100:
@@ -223,13 +224,15 @@ def store_subtrees(file):
                 ast_dict[commit.hash] = [(filepath, b_subtree, a_subtree)]
             else:
                 ast_dict[commit.hash].append((f[0], b_subtree, a_subtree))
-        print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
-        if len(ast_dict) % 100 == 0:
-            with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
-                json.dump(ast_dict, fp)
-            print('\n\n***** ast_dict backup saved at size {}. *****\n\n'.format(len(ast_dict)))
-    print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
 
+        if commit.hash in ast_dict:     # to check if new commit is added
+            print('commit {} subtrees collected in {}.'.format(commit.hash[:7], time_since(commit_start)))
+            if len(ast_dict) % 100 == 0:
+                with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
+                    json.dump(ast_dict, fp)
+                print('\n\n***** ast_dict backup saved at size {}. *****\n\n'.format(len(ast_dict)))
+
+    print('\nall {} commit trees extracted in {}'.format(len(ast_dict), time_since(dataset_start)))
     with open(os.path.join(data_path, 'subtrees_apachejava_color.json'), 'w') as fp:
         json.dump(ast_dict, fp)
     print('\n** subtrees_apachejava_color.json saved. **')
