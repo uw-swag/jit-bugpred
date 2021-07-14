@@ -203,14 +203,11 @@ class RunHandler:
         return False
 
     def is_filtered(self, commit):
-        if commit.hash in self.exclude_list or commit.hash in self.ast_dict:
-            logging.info('Already exists')
-            return True
         if commit.files > 100:
-            print('too many files.')
+            logging.info('Too many files.')
             return True
         if commit.lines > 10000:
-            print('too many lines.')
+            logging.info('Too many lines.')
             return True
         if not self.has_modification_with_file_type(commit):
             logging.info('No file in given language')
@@ -220,13 +217,15 @@ class RunHandler:
     def store_subtrees(self):
         commits = self.df['commit_id']
         projects = self.df['project']
+        commits = dict(zip(commits, projects))
+        commits = {k: v for k, v in commits.items() if k not in set(self.exclude_list).union(set(self.ast_dict.keys()))}
         gumtree = GumTreeDiff()
         dataset_start = time.time()
-        for i in range(len(commits)):
+        for c, p in commits.items():
             try:
-                commit = GitRepository('repos/' + projects[i].split('/')[1]).get_commit(commits[i])
+                commit = GitRepository('repos/' + p.split('/')[1]).get_commit(c)
             except ValueError:  # for hadoop repos
-                commit = GitRepository('repos/' + projects[i].split('/')[1].split('-')[0]).get_commit(commits[i])
+                commit = GitRepository('repos/' + p.split('/')[1].split('-')[0]).get_commit(c)
             logging.info('Commit #%s in %s from %s', commit.hash, commit.committer_date, commit.author.name)
             if self.is_filtered(commit):
                 continue

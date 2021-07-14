@@ -22,3 +22,5 @@ notebooks/.ipynb_checkpoints
 notfound.txt
 *.pkl
 */logs
+logs
+repos
