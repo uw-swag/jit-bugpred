@@ -279,6 +279,9 @@ class RunHandler:
         print('\nall {} commit trees extracted in {}'.format(len(commits), self.time_since(dataset_start)))
         with open(self.save_file, 'w') as fp:
             json.dump(self.ast_dict, fp)
+            self.exclude_list += list(self.ast_dict.keys())
+            pd.DataFrame({'commit_id': self.exclude_list}) \
+                .to_csv(os.path.join(data_path, self.exclude_file), index=False)
 
 
 if __name__ == '__main__':
