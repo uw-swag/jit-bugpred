@@ -30,11 +30,6 @@ class GumTreeDiff:
             file.write(b_content)
         with open(a_file, 'w') as file:
             file.write(a_content)
-        # try:
-        # result = subprocess.run([self.bin_path, 'dotdiff', b_file, a_file],
-        #                         check=True,
-        #                         stdout=subprocess.PIPE,
-        #                         stderr=subprocess.STDOUT)
         command = subprocess.Popen([self.bin_path, 'dotdiff', b_file, a_file],
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
@@ -157,13 +152,13 @@ class RunHandler:
         self.commit_file = commit_file
         self.ast_filename = ast_filename
         self.types = types
-        self.exclude_file = exclude_file
+        self.already_file = exclude_file
         self.limit = limit
         self.ast_dict = dict()
         self.file_index = 1
         self.save_file = None
-        self.exclude_list = []
-        self.df = None
+        self.already = []
+        self.commits = dict()
         self.initialize()
         Path("logs/").mkdir(parents=True, exist_ok=True)
         logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s',
@@ -193,8 +188,13 @@ class RunHandler:
             else:
                 self.save_file = filepath
         print('current file: {}\n'.format(self.save_file))
-        self.exclude_list = pd.read_csv(os.path.join(data_path, self.exclude_file))['commit_id'].tolist()
-        self.df = pd.read_csv(os.path.join(data_path, self.commit_file))
+        self.already = pd.read_csv(os.path.join(data_path, self.already_file))['commit_id'].tolist()
+        df = pd.read_csv(os.path.join(data_path, self.commit_file))
+        commits = df['commit_id']
+        projects = df['project']
+        commits = dict(zip(commits, projects))
+        remaining = list(set(commits.keys()) - set(self.already) - set(self.ast_dict.keys()))
+        self.commits = {k: commits[k] for k in remaining}
 
     def has_modification_with_file_type(self, commit):
         for mod in commit.modifications:
@@ -214,14 +214,12 @@ class RunHandler:
             return True
         return False
 
-    def store_subtrees(self):
-        commits = self.df['commit_id']
-        projects = self.df['project']
-        commits = dict(zip(commits, projects))
-        commits = {k: v for k, v in commits.items() if k not in set(self.exclude_list).union(set(self.ast_dict.keys()))}
-        gumtree = GumTreeDiff()
-        dataset_start = time.time()
-        for c, p in commits.items():
+    def filter_commits(self):
+        """
+        filter commits based on PyDriller
+        """
+        filtered = []
+        for c, p in self.commits.items():
             try:
                 commit = GitRepository('repos/' + p.split('/')[1]).get_commit(c)
             except ValueError:  # for hadoop repos
@@ -229,6 +227,23 @@ class RunHandler:
             logging.info('Commit #%s in %s from %s', commit.hash, commit.committer_date, commit.author.name)
             if self.is_filtered(commit):
                 continue
+            else:
+                filtered.append(c)
+                if len(filtered) % 1000 == 0:
+                    pd.DataFrame({'commit_id': filtered})\
+                        .to_csv(os.path.join(data_path, 'filtered.csv'), index=False)
+        pd.DataFrame({'commit_id': filtered}) \
+            .to_csv(os.path.join(data_path, 'filtered.csv'), index=False)
+
+    def store_subtrees(self):
+        gumtree = GumTreeDiff()
+        dataset_start = time.time()
+        for c, p in self.commits.items():
+            try:
+                commit = GitRepository('repos/' + p.split('/')[1]).get_commit(c)
+            except ValueError:  # for hadoop repos
+                commit = GitRepository('repos/' + p.split('/')[1].split('-')[0]).get_commit(c)
+            logging.info('Commit #%s in %s from %s', commit.hash, commit.committer_date, commit.author.name)
             commit_start = time.time()
             for m in commit.modifications:
                 if not m.filename.endswith(tuple(self.types)):
@@ -270,22 +285,22 @@ class RunHandler:
                     if len(self.ast_dict) == self.limit:
                         self.file_index += 1
                         self.save_file = os.path.join(data_path, self.ast_filename + '_{}.json'.format(self.file_index))
-                        self.exclude_list += list(self.ast_dict.keys())
-                        pd.DataFrame({'commit_id': self.exclude_list})\
-                            .to_csv(os.path.join(data_path, self.exclude_file), index=False)
+                        self.already += list(self.ast_dict.keys())
+                        pd.DataFrame({'commit_id': self.already})\
+                            .to_csv(os.path.join(data_path, self.already_file), index=False)
                         self.ast_dict = dict()
                         print('\n\n***** switching file *****\n\n')
 
-        print('\nall {} commit trees extracted in {}'.format(len(commits), self.time_since(dataset_start)))
+        print('\nall {} commit trees extracted in {}'.format(len(self.commits), self.time_since(dataset_start)))
         with open(self.save_file, 'w') as fp:
             json.dump(self.ast_dict, fp)
-            self.exclude_list += list(self.ast_dict.keys())
-            pd.DataFrame({'commit_id': self.exclude_list}) \
-                .to_csv(os.path.join(data_path, self.exclude_file), index=False)
+        self.already += list(self.ast_dict.keys())
+        pd.DataFrame({'commit_id': self.already}) \
+            .to_csv(os.path.join(data_path, self.already_file), index=False)
 
 
 if __name__ == '__main__':
-    RunHandler(commit_file='apachejava.csv',
+    RunHandler(commit_file='clean_filtered.csv',
                ast_filename='subtrees_apachejava_color',
                exclude_file='keys_apachejava_ast.csv',
                types=['.java']).store_subtrees()
@@ -293,3 +308,4 @@ if __name__ == '__main__':
     # subtree.read_ast()
     # subtree.extract_subtree()
     # subtree.generate_dotfile()
+    print('finished.')
