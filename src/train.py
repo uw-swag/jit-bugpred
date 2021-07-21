@@ -3,9 +3,14 @@ import os
 import time
 import numpy as np
 import torch
+from imblearn.over_sampling import SMOTE
+from scipy.optimize import differential_evolution
+from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, precision_recall_curve
+import pandas as pd
 from metrics import roc_auc
 import matplotlib.pyplot as plt
-
 
 BASE_PATH = os.path.dirname(os.path.dirname(__file__))
 data_path = os.path.join(BASE_PATH, 'data')
@@ -21,19 +26,14 @@ def time_since(since):
     s -= h * 3600
     m = math.floor(s / 60)
     s -= m * 60
-    return '{}h {}min {}sec'.format(h, m, s)
+    return '{}h {}min {:.2f} sec'.format(h, m, s)
 
 
 def evaluate(label, output):
     return roc_auc(np.array(label), np.array(output))
 
 
-def aggregate(tensors):
-    return torch.FloatTensor([torch.max(tensors)]).to(device)
-
-
-def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
-
+def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
     if resume:
         all_training_aucs = resume['all_training_aucs']
         all_training_losses = resume['all_training_losses']
@@ -55,31 +55,32 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
         total_loss = 0
         y_scores = []
         y_true = []
+        features_list = []
+        label_list = []
 
         model.train()
         dataset.set_mode('train')
+        print('len(data) is {}'.format(str(len(dataset))))
         for i in range(len(dataset)):
             data = dataset[i]
-            label = data[0][4]
-            commit_loss = 0
-            for file_tensors in data:
-                optimizer.zero_grad()
-                model = model.to(device)
-                output = model(file_tensors[0].to(device), file_tensors[1].to(device),
-                               file_tensors[2].to(device), file_tensors[3].to(device))
-                loss = criterion(output, torch.Tensor([label]).to(device))
-                loss.backward()
-                optimizer.step()
-                commit_loss += loss.item()
+            label = data[4]
+            optimizer.zero_grad()
+            model = model.to(device)
+            output, features = model(data[0].to(device), data[1].to(device),
+                                     data[2].to(device), data[3].to(device))
+            features_list.append(features)
+            label_list.append(label)
+            loss = criterion(output, torch.Tensor([label]).to(device))
+            loss.backward()
+            optimizer.step()
 
-                y_scores.append(torch.sigmoid(output).item())
-                y_true.append(label)
+            y_scores.append(torch.sigmoid(output).item())
+            y_true.append(label)
 
-            mean_commit_loss = commit_loss / len(data)
-            total_loss += mean_commit_loss
+            total_loss += loss.item()
             if label:
                 print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
-                    i, len(dataset), mean_commit_loss))
+                    i, len(dataset), loss.item()))
 
         print('\nepoch duration: {}'.format(time_since(start)))
 
@@ -102,26 +103,23 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
         total_loss = 0
         y_scores = []
         y_true = []
+
         model.eval()
         dataset.set_mode('val')
+        print('len(data) is {}'.format(str(len(dataset))))
         with torch.no_grad():
             for i in range(len(dataset)):
                 data = dataset[i]
-                if data is None:
-                    continue
-                label = data[0][4]
-                cmt_outs = torch.zeros(len(data), device=device)
-                for j, file_tensors in enumerate(data):
-                    model = model.to(device)
-                    output = model(file_tensors[0].to(device), file_tensors[1].to(device),
-                                   file_tensors[2].to(device), file_tensors[3].to(device))
-                    cmt_outs[j] = output
-
-                agg_out = aggregate(cmt_outs)
-                loss = criterion(agg_out, torch.Tensor([label]).to(device))
+                label = data[4]
+                model = model.to(device)
+                output, features = model(data[0].to(device), data[1].to(device),
+                                         data[2].to(device), data[3].to(device))
+                features_list.append(features)
+                label_list.append(label)
+                loss = criterion(output, torch.Tensor([label]).to(device))
                 total_loss += loss.item()
 
-                y_scores.append(torch.sigmoid(agg_out).item())
+                y_scores.append(torch.sigmoid(output).item())
                 y_true.append(label)
 
         val_loss = total_loss / len(dataset)
@@ -132,6 +130,9 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
         if len(all_val_aucs) == 0 or val_auc > max(all_val_aucs):
             torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
             print('* model_best_auc saved.')
+            torch.save(torch.vstack(features_list), os.path.join(BASE_PATH, 'trained_models/train_features.pt'))
+            torch.save(torch.Tensor(label_list), os.path.join(BASE_PATH, 'trained_models/train_labels.pt'))
+            print('* features saved.')
         if len(all_val_losses) == 0 or val_loss < min(all_val_losses):
             torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_least_loss.pt'))
             print('* model_least_loss saved.')
@@ -152,31 +153,62 @@ def train(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None):
     print('\ntraining finished')
 
 
-def test(model, dataset):
+def objective_func(k, train_features, train_labels, valid_features, valid_labels):
+    smote = SMOTE(random_state=42, k_neighbors=int(np.round(k)), n_jobs=32)
+    train_feature_res, train_label_res = smote.fit_resample(train_features, train_labels)
+    clf = RandomForestClassifier(n_estimators=300, random_state=42, n_jobs=-1)
+    clf.fit(train_feature_res, train_label_res)
+    prob = clf.predict_proba(valid_features)[:, 1]
+    auc = roc_auc_score(valid_labels, prob)
+
+    return -auc
+
+
+def train(clf, train_features, train_labels):
+    percent_80 = int(train_features.shape[0] * 0.8)
+    train_features, valid_features = train_features[:percent_80], train_features[percent_80:]
+    train_labels, valid_labels = train_labels[:percent_80], train_labels[percent_80:]
+    bounds = [(1, 20)]
+    opt = differential_evolution(objective_func, bounds, args=(train_features, train_labels,
+                                                               valid_features, valid_labels),
+                                 popsize=10, mutation=0.7, recombination=0.3, seed=0)
+    smote = SMOTE(random_state=42, n_jobs=32, k_neighbors=int(np.round(opt.x)))
+    train_features, train_labels = smote.fit_resample(train_features, train_labels)
+    clf.fit(train_features, train_labels)
+    prob = clf.predict_proba(valid_features)[:, 1]
+    _, _, _, auc = evaluate(valid_labels, prob)
+    print('metrics: AUC={}\n'.format(auc))
+
+
+def test(model, dataset, clf):
     print('testing')
     y_scores = []
     y_true = []
+    features_list = []
+    label_list = []
+
     model.eval()
     dataset.set_mode('test')
+    print('len(data) is {}'.format(str(len(dataset))))
     with torch.no_grad():
         for i in range(len(dataset)):
             data = dataset[i]
-            if data is None:
-                continue
-            label = data[0][4]
-            cmt_outs = torch.zeros(len(data), device=device)
-            for j, file_tensors in enumerate(data):
-                model = model.to(device)
-                output = model(file_tensors[0].to(device), file_tensors[1].to(device),
-                               file_tensors[2].to(device), file_tensors[3].to(device))
-                cmt_outs[j] = output
-
-            agg_out = aggregate(cmt_outs)
-            y_scores.append(torch.tensor(agg_out).item())
+            label = data[4]
+            model = model.to(device)
+            output, features = model(data[0].to(device), data[1].to(device),
+                                     data[2].to(device), data[3].to(device))
+            features_list.append(features)
+            label_list.append(label)
+            y_scores.append(torch.sigmoid(output).item())
             y_true.append(label)
 
+    pd.DataFrame({'y_true': y_true, 'y_score': y_scores}).to_csv(os.path.join(data_path, 'test_result.csv'))
     fpr, tpr, thresholds, auc = evaluate(y_true, y_scores)
     print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
+    # features = torch.vstack(features_list).cpu().detach().numpy()
+    # labels = torch.Tensor(label_list).cpu().detach().numpy()
+    # fpr, tpr, thresholds, auc = evaluate(labels, clf.predict_proba(features)[:, 1])
+    # print('metrics: AUC={}\n\nthresholds={}\n'.format(auc, str(thresholds)))
 
     plt.clf()
     plt.title('Receiver Operating Characteristic')
@@ -188,6 +220,17 @@ def test(model, dataset):
     plt.ylabel('True Positive Rate')
     plt.xlabel('False Positive Rate')
     plt.savefig(os.path.join(BASE_PATH, 'trained_models/roc.png'))
+
+    p, r, _ = precision_recall_curve(y_true, y_scores)
+    plt.clf()
+    plt.title('Precision-Recall')
+    plt.plot(r, p, 'b', label='AUC = %0.2f' % metrics.auc(r, p))
+    plt.legend(loc='upper right')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.ylabel('Precision')
+    plt.xlabel('Recall')
+    plt.savefig(os.path.join(BASE_PATH, 'trained_models/pr.png'))
 
     print('testing finished')
 
@@ -207,7 +250,7 @@ def resume_training(checkpoint, stats, model, optimizer, criterion, epochs, data
         'all_val_aucs': stats['all_val_aucs']
     }
     print('all set ...')
-    train(model, optimizer, criterion, epochs, dataset, so_far, resume)
+    pretrain(model, optimizer, criterion, epochs, dataset, so_far, resume)
 
 
 def plot_training(stats):
