@@ -25,7 +25,7 @@ if __name__ == '__main__':
         'labels': '/openstack_labels.json'
     }
     dataset = ASTDataset(data_dict)
-    hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2     # plus supernode node feature and node colors
+    hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2 + 22    # plus supernode node feature and node colors and metrics
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 
@@ -56,4 +56,6 @@ if __name__ == '__main__':
     if args.test:
         # need map_location=torch.device('cpu') if on CPU
         model = torch.load(os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
+        test(model, dataset, clf)
+        test(model, dataset, clf)
         test(model, dataset, clf)
