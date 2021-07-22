@@ -67,7 +67,8 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
             optimizer.zero_grad()
             model = model.to(device)
             output, features = model(data[0].to(device), data[1].to(device),
-                                     data[2].to(device), data[3].to(device))
+                                     data[2].to(device), data[3].to(device),
+                                     data[5].to(device))
             features_list.append(features)
             label_list.append(label)
             loss = criterion(output, torch.Tensor([label]).to(device))
@@ -113,7 +114,8 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
                 label = data[4]
                 model = model.to(device)
                 output, features = model(data[0].to(device), data[1].to(device),
-                                         data[2].to(device), data[3].to(device))
+                                         data[2].to(device), data[3].to(device),
+                                         data[5].to(device))
                 features_list.append(features)
                 label_list.append(label)
                 loss = criterion(output, torch.Tensor([label]).to(device))
@@ -196,7 +198,8 @@ def test(model, dataset, clf):
             label = data[4]
             model = model.to(device)
             output, features = model(data[0].to(device), data[1].to(device),
-                                     data[2].to(device), data[3].to(device))
+                                     data[2].to(device), data[3].to(device),
+                                     data[5].to(device))
             features_list.append(features)
             label_list.append(label)
             y_scores.append(torch.sigmoid(output).item())

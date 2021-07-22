@@ -98,7 +98,7 @@ class ASTDataset(Dataset):
         adj = self.sparse_mx_to_torch_sparse_tensor(adj)
         return adj
 
-    def get_embedding(self, file_node_tokens, metrics, colors):
+    def get_embedding(self, file_node_tokens, colors):
         for i, node_feat in enumerate(file_node_tokens):
             file_node_tokens[i] = node_feat.strip()
             if node_feat == 'N o n e':
@@ -107,7 +107,6 @@ class ASTDataset(Dataset):
                 assert colors[i] == 'blue'
         # fix the data later to remove the code above.
         features = self.vectorizer_model.transform(file_node_tokens).astype(np.float32)
-        features = sp.hstack([features, metrics.repeat(features.shape[0], axis=0)])
         # add color feature at the end of features
         color_feat = [1 if c == 'red' else 0 for c in colors]
         features = sp.hstack([features, np.array(color_feat, dtype=np.float32).reshape(-1, 1)])
@@ -126,7 +125,8 @@ class ASTDataset(Dataset):
     def __getitem__(self, item):
         commit = self.ast_dict[item]
         label = self.labels[commit[0]]
-        metrics = self.metrics[self.metrics['commit_id'] == commit[0]].drop(columns=['commit_id']).to_numpy(dtype=np.float32)
+        metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == commit[0]].drop(columns=['commit_id'])
+                              .to_numpy(dtype=np.float32))[0, :])
         b_node_tokens, b_edges, b_colors = [], [[], []], []
         a_node_tokens, a_edges, a_colors = [], [[], []], []
         b_nodes_so_far, a_nodes_so_far = 0, 0
@@ -134,14 +134,14 @@ class ASTDataset(Dataset):
             b_node_tokens += [' '.join(node) for node in file[1][0]]
             b_colors += [c for c in file[1][2]]
             b_edges = [
-                b_edges[0] + [s + b_nodes_so_far for s in file[1][1][0]],   # source nodes
-                b_edges[1] + [d + b_nodes_so_far for d in file[1][1][1]]    # destination nodes
+                b_edges[0] + [s + b_nodes_so_far for s in file[1][1][0]],  # source nodes
+                b_edges[1] + [d + b_nodes_so_far for d in file[1][1][1]]  # destination nodes
             ]
             a_node_tokens += [' '.join(node) for node in file[2][0]]
             a_colors += [c for c in file[2][2]]
             a_edges = [
-                a_edges[0] + [s + a_nodes_so_far for s in file[2][1][0]],   # source nodes
-                a_edges[1] + [d + a_nodes_so_far for d in file[2][1][1]]    # destination nodes
+                a_edges[0] + [s + a_nodes_so_far for s in file[2][1][0]],  # source nodes
+                a_edges[1] + [d + a_nodes_so_far for d in file[2][1][1]]  # destination nodes
             ]
 
             b_n_nodes = len(file[1][0])
@@ -149,11 +149,11 @@ class ASTDataset(Dataset):
             b_nodes_so_far += b_n_nodes
             a_nodes_so_far += a_n_nodes
 
-        before_embeddings = self.get_embedding(b_node_tokens, metrics, b_colors)
+        before_embeddings = self.get_embedding(b_node_tokens, b_colors)
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
-        after_embeddings = self.get_embedding(a_node_tokens, metrics, a_colors)
+        after_embeddings = self.get_embedding(a_node_tokens, a_colors)
         after_adj = self.get_adjacency_matrix(a_nodes_so_far, a_edges[0], a_edges[1])
-        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label]
+        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label, metrics]
 
         if not b_nodes_so_far and not a_nodes_so_far:
             print('commit {} has no file tensors.'.format(commit[0]))
