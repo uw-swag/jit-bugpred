@@ -15,53 +15,52 @@ HIDDEN_SIZE = 768
 
 
 class ASTDataset(Dataset):
-    def __init__(self, data_dict, transform=None, project='openstack'):
+    def __init__(self, data_dict, commit_lists, transform=None):
         self.transform = transform
         self.data_dict = data_dict
+        self.commit_lists = commit_lists
         with open(data_path + self.data_dict['labels']) as file:
             self.labels = json.load(file)
         self.ast_dict = None
+        self.c_list = None
+        self.file_index = 0
+        self.mode = 'train'
         self.vectorizer_model = None
-        self.project = project
-        self.metrics = self.load_metrics()
         self.learn_vectorizer()
 
-    def load_metrics(self):
-        metrics = pd.read_csv(os.path.join(data_path, '{}.csv'.format(self.project)))
-        metrics = metrics.drop(['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr'],
-                               axis=1)
-        metrics = metrics.fillna(value=0)
-        return metrics
-
     def learn_vectorizer(self):
-        with open(data_path + self.data_dict['train']) as file:
-            tr_subtrees = json.load(file)
-        with open(data_path + self.data_dict['val']) as file:
-            va_subtrees = json.load(file)
-        subtrees = {**tr_subtrees, **va_subtrees}
-        assert len(subtrees) == len(tr_subtrees) + len(va_subtrees)
-
+        files = list(self.data_dict['train']) + list(self.data_dict['valid'])
         corpus = []
-        for commit, files in subtrees.items():
-            for f in files:
-                for node_feat in f[1][0]:
-                    if len(node_feat) > 1:  # None
-                        corpus.append(node_feat)
-                    else:
-                        corpus.append(node_feat[0])
-                for node_feat in f[2][0]:
-                    if len(node_feat) > 1:  # None
-                        corpus.append(node_feat)
-                    else:
-                        corpus.append(node_feat[0])
+        for fname in files:
+            with open(data_path + fname) as fp:
+                subtrees = json.load(fp)
+            for commit, files in subtrees.items():
+                for f in files:
+                    for node_feat in f[1][0]:
+                        if len(node_feat) > 1:  # None
+                            corpus.append(node_feat)
+                        else:
+                            corpus.append(node_feat[0])
+                    for node_feat in f[2][0]:
+                        if len(node_feat) > 1:  # None
+                            corpus.append(node_feat)
+                        else:
+                            corpus.append(node_feat[0])
 
         vectorizer = CountVectorizer(lowercase=False, preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
 
     def set_mode(self, mode):
-        with open(data_path + self.data_dict[mode], 'r') as fp:
-            ast_dict = json.load(fp)
-        self.ast_dict = list(ast_dict.items())
+        self.mode = mode
+        self.c_list = pd.read_csv(data_path + self.commit_lists[self.mode])['commit_id'].tolist()
+        self.file_index = 0
+        with open(data_path + self.data_dict[self.mode][self.file_index], 'r') as fp:
+            self.ast_dict = json.load(fp)
+
+    def switch_datafile(self):
+        self.file_index += 1
+        with open(data_path + self.data_dict[self.mode][self.file_index], 'r') as fp:
+            self.ast_dict = json.load(fp)
 
     @staticmethod
     def normalize(mx):
@@ -120,13 +119,17 @@ class ASTDataset(Dataset):
         return features
 
     def __len__(self):
-        return len(self.ast_dict)
+        return len(self.c_list)
 
     def __getitem__(self, item):
-        commit = self.ast_dict[item]
+        c = self.c_list[item]
+        while True:
+            try:
+                commit = self.ast_dict[c]
+                break
+            except:
+                self.switch_datafile()
         label = self.labels[commit[0]]
-        metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == commit[0]].drop(columns=['commit_id'])
-                              .to_numpy(dtype=np.float32))[0, :])
         b_node_tokens, b_edges, b_colors = [], [[], []], []
         a_node_tokens, a_edges, a_colors = [], [[], []], []
         b_nodes_so_far, a_nodes_so_far = 0, 0
@@ -153,7 +156,7 @@ class ASTDataset(Dataset):
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
         after_embeddings = self.get_embedding(a_node_tokens, a_colors)
         after_adj = self.get_adjacency_matrix(a_nodes_so_far, a_edges[0], a_edges[1])
-        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label, metrics]
+        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label]
 
         if not b_nodes_so_far and not a_nodes_so_far:
             print('commit {} has no file tensors.'.format(commit[0]))
@@ -162,8 +165,8 @@ class ASTDataset(Dataset):
 
 
 if __name__ == "__main__":
-    ast_dataset = ASTDataset(data_path + '/asts_300_synerr.json')
-    print(ast_dataset[0])
+    # ast_dataset = ASTDataset(data_path + '/asts_300_synerr.json')
+    # print(ast_dataset[0])
     # train_loader = DataLoader(ast_dataset, batch_size=1, shuffle=False)
     # train_iter = iter(train_loader)
     # data = train_iter.next()

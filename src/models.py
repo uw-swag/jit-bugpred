@@ -107,14 +107,14 @@ class JITGNN(nn.Module):
         self.gnn24 = GraphConvolution(message_size, message_size)
         self.fc = nn.Linear(2 * message_size + 22, 1)
 
-    def forward(self, b_x, b_adj, a_x, a_adj, metrics):
+    def forward(self, b_x, b_adj, a_x, a_adj):
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
         b_node_embeddings = self.gnn14(self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj), b_adj)
         b_supernode = b_node_embeddings[-1, :]
         a_node_embeddings = self.gnn24(self.gnn23(self.gnn22(self.gnn21(a_x, a_adj), a_adj), a_adj), a_adj)
         a_supernode = a_node_embeddings[-1, :]
         supernodes = torch.hstack([b_supernode, a_supernode])   # maybe a distance measure later
-        features = torch.hstack([supernodes, metrics])
-        output = self.fc(features)
+
+        output = self.fc(supernodes)
         return output, supernodes
 

@@ -55,8 +55,8 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
         total_loss = 0
         y_scores = []
         y_true = []
-        features_list = []
-        label_list = []
+        # features_list = []
+        # label_list = []
 
         model.train()
         dataset.set_mode('train')
@@ -67,10 +67,9 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
             optimizer.zero_grad()
             model = model.to(device)
             output, features = model(data[0].to(device), data[1].to(device),
-                                     data[2].to(device), data[3].to(device),
-                                     data[5].to(device))
-            features_list.append(features)
-            label_list.append(label)
+                                     data[2].to(device), data[3].to(device))
+            # features_list.append(features)
+            # label_list.append(label)
             loss = criterion(output, torch.Tensor([label]).to(device))
             loss.backward()
             optimizer.step()
@@ -114,10 +113,9 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
                 label = data[4]
                 model = model.to(device)
                 output, features = model(data[0].to(device), data[1].to(device),
-                                         data[2].to(device), data[3].to(device),
-                                         data[5].to(device))
-                features_list.append(features)
-                label_list.append(label)
+                                         data[2].to(device), data[3].to(device))
+                # features_list.append(features)
+                # label_list.append(label)
                 loss = criterion(output, torch.Tensor([label]).to(device))
                 total_loss += loss.item()
 
@@ -132,9 +130,9 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
         if len(all_val_aucs) == 0 or val_auc > max(all_val_aucs):
             torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_best_auc.pt'))
             print('* model_best_auc saved.')
-            torch.save(torch.vstack(features_list), os.path.join(BASE_PATH, 'trained_models/train_features.pt'))
-            torch.save(torch.Tensor(label_list), os.path.join(BASE_PATH, 'trained_models/train_labels.pt'))
-            print('* features saved.')
+            # torch.save(torch.vstack(features_list), os.path.join(BASE_PATH, 'trained_models/train_features.pt'))
+            # torch.save(torch.Tensor(label_list), os.path.join(BASE_PATH, 'trained_models/train_labels.pt'))
+            # print('* features saved.')
         if len(all_val_losses) == 0 or val_loss < min(all_val_losses):
             torch.save(model, os.path.join(BASE_PATH, 'trained_models/model_least_loss.pt'))
             print('* model_least_loss saved.')
@@ -186,8 +184,8 @@ def test(model, dataset, clf):
     print('testing')
     y_scores = []
     y_true = []
-    features_list = []
-    label_list = []
+    # features_list = []
+    # label_list = []
 
     model.eval()
     dataset.set_mode('test')
@@ -198,10 +196,9 @@ def test(model, dataset, clf):
             label = data[4]
             model = model.to(device)
             output, features = model(data[0].to(device), data[1].to(device),
-                                     data[2].to(device), data[3].to(device),
-                                     data[5].to(device))
-            features_list.append(features)
-            label_list.append(label)
+                                     data[2].to(device), data[3].to(device))
+            # features_list.append(features)
+            # label_list.append(label)
             y_scores.append(torch.sigmoid(output).item())
             y_true.append(label)
 
