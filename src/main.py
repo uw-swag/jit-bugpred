@@ -22,7 +22,7 @@ if __name__ == '__main__':
         'train': ['/balance_train_1.json', '/balance_train_2.json', '/balance_train_3.json'],
         'val': ['/balance_valid.json'],
         'test': ['/balance_test.json'],
-        'labels': ['/balance_labels.json']
+        'labels': '/balance_labels.json'
     }
     commit_lists = {
         'train': '/balance_train.csv',

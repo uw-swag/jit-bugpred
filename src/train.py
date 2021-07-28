@@ -78,7 +78,7 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
             y_true.append(label)
 
             total_loss += loss.item()
-            if label:
+            if i % 100:
                 print('\t[{:5d}/{}]\tloss: {:.4f}'.format(
                     i, len(dataset), loss.item()))
 

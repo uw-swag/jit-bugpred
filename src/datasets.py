@@ -29,7 +29,7 @@ class ASTDataset(Dataset):
         self.learn_vectorizer()
 
     def learn_vectorizer(self):
-        files = list(self.data_dict['train']) + list(self.data_dict['valid'])
+        files = list(self.data_dict['train']) + list(self.data_dict['val'])
         corpus = []
         for fname in files:
             with open(data_path + fname) as fp:
@@ -129,11 +129,11 @@ class ASTDataset(Dataset):
                 break
             except:
                 self.switch_datafile()
-        label = self.labels[commit[0]]
+        label = self.labels[c]
         b_node_tokens, b_edges, b_colors = [], [[], []], []
         a_node_tokens, a_edges, a_colors = [], [[], []], []
         b_nodes_so_far, a_nodes_so_far = 0, 0
-        for file in commit[1]:
+        for file in commit:
             b_node_tokens += [' '.join(node) for node in file[1][0]]
             b_colors += [c for c in file[1][2]]
             b_edges = [
@@ -159,7 +159,7 @@ class ASTDataset(Dataset):
         training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label]
 
         if not b_nodes_so_far and not a_nodes_so_far:
-            print('commit {} has no file tensors.'.format(commit[0]))
+            print('commit {} has no file tensors.'.format(c))
 
         return training_data
 

@@ -105,7 +105,7 @@ class JITGNN(nn.Module):
         self.gnn22 = GraphConvolution(message_size, message_size)
         self.gnn23 = GraphConvolution(message_size, message_size)
         self.gnn24 = GraphConvolution(message_size, message_size)
-        self.fc = nn.Linear(2 * message_size + 22, 1)
+        self.fc = nn.Linear(2 * message_size, 1)
 
     def forward(self, b_x, b_adj, a_x, a_adj):
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
