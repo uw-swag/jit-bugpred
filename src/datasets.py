@@ -15,8 +15,9 @@ HIDDEN_SIZE = 768
 
 
 class ASTDataset(Dataset):
-    def __init__(self, data_dict, commit_lists, transform=None):
+    def __init__(self, data_dict, commit_lists, special_token=True, transform=None):
         self.transform = transform
+        self.special_token = special_token
         self.data_dict = data_dict
         self.commit_lists = commit_lists
         with open(data_path + self.data_dict['labels']) as file:
@@ -40,12 +41,28 @@ class ASTDataset(Dataset):
                         if len(node_feat) > 1:  # None
                             corpus.append(node_feat)
                         else:
-                            corpus.append(node_feat[0])
+                            if not self.special_token:
+                                corpus.append(node_feat[0])
+                            else:
+                                feature = node_feat[0]
+                                if ':' in node_feat[0]:
+                                    feat_type = node_feat[0].split(':')[0]
+                                    feature = feat_type + ' ' + '<' + feat_type[
+                                                                      :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+                                corpus.append(feature)
                     for node_feat in f[2][0]:
                         if len(node_feat) > 1:  # None
                             corpus.append(node_feat)
                         else:
-                            corpus.append(node_feat[0])
+                            if not self.special_token:
+                                corpus.append(node_feat[0])
+                            else:
+                                feature = node_feat[0]
+                                if ':' in node_feat[0]:
+                                    feat_type = node_feat[0].split(':')[0]
+                                    feature = feat_type + ' ' + '<' + feat_type[
+                                                                      :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+                                corpus.append(feature)
 
         vectorizer = CountVectorizer(lowercase=False, preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
@@ -104,6 +121,11 @@ class ASTDataset(Dataset):
                 file_node_tokens[i] = 'None'
                 colors.insert(i, 'blue')
                 assert colors[i] == 'blue'
+            if self.special_token:
+                if ':' in node_feat:
+                    feat_type = node_feat.split(':')[0]
+                    file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[
+                                                                  :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
         # fix the data later to remove the code above.
         features = self.vectorizer_model.transform(file_node_tokens).astype(np.float32)
         # add color feature at the end of features
