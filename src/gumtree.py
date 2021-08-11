@@ -148,11 +148,11 @@ class SubTreeExtractor:
 
 
 class RunHandler:
-    def __init__(self, commit_file, ast_filename, exclude_file, types, limit=10000):
+    def __init__(self, commit_file, ast_filename, already_file, types, limit=10000):
         self.commit_file = commit_file
         self.ast_filename = ast_filename
         self.types = types
-        self.already_file = exclude_file
+        self.already_file = already_file
         self.limit = limit
         self.ast_dict = dict()
         self.file_index = 1
@@ -231,9 +231,9 @@ class RunHandler:
                 filtered.append(c)
                 if len(filtered) % 1000 == 0:
                     pd.DataFrame({'commit_id': filtered})\
-                        .to_csv(os.path.join(data_path, 'filtered.csv'), index=False)
+                        .to_csv(os.path.join(data_path, 'apachejavanew_filtered.csv'), index=False)
         pd.DataFrame({'commit_id': filtered}) \
-            .to_csv(os.path.join(data_path, 'filtered.csv'), index=False)
+            .to_csv(os.path.join(data_path, 'apachejavanew_filtered.csv'), index=False)
 
     def store_subtrees(self):
         gumtree = GumTreeDiff()
@@ -300,9 +300,9 @@ class RunHandler:
 
 
 if __name__ == '__main__':
-    RunHandler(commit_file='clean_filtered.csv',
-               ast_filename='subtrees_apachejava_color',
-               exclude_file='keys_apachejava_ast.csv',
+    RunHandler(commit_file='apachejavanew_filtered.csv',
+               ast_filename='subtrees_apachejavanew_color',
+               already_file='keys_apachejava_ast.csv',
                types=['.java']).store_subtrees()
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
