@@ -218,7 +218,7 @@ class RunHandler:
         """
         filter commits based on PyDriller
         """
-        filtered = []
+        filtered, projects, dates = [], [], []
         for c, p in self.commits.items():
             try:
                 commit = GitRepository('repos/' + p.split('/')[1]).get_commit(c)
@@ -229,10 +229,12 @@ class RunHandler:
                 continue
             else:
                 filtered.append(c)
+                projects.append(p)
+                dates.append(int(commit.committer_date.timestamp()))
                 if len(filtered) % 1000 == 0:
-                    pd.DataFrame({'commit_id': filtered})\
+                    pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates})\
                         .to_csv(os.path.join(data_path, 'apachejavanew_filtered.csv'), index=False)
-        pd.DataFrame({'commit_id': filtered}) \
+        pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates}) \
             .to_csv(os.path.join(data_path, 'apachejavanew_filtered.csv'), index=False)
 
     def store_subtrees(self):
