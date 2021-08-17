@@ -1,55 +1,82 @@
 import json
-import os
-import numpy as np
 import pandas as pd
+import numpy as np
 
-BASE_PATH = os.path.dirname(os.path.dirname(__file__))
-data_path = os.path.join(BASE_PATH, 'data')
+train = pd.read_csv('data/balance_train.csv')['commit_id']
+test = pd.read_csv('data/balance_test.csv')['commit_id']
+valid = pd.read_csv('data/balance_valid.csv')['commit_id']
 
-with open(os.path.join(data_path, 'subtrees_0.25_3.json'), 'r') as fp:
-    subtrees = json.load(fp)
+files = ['subtrees_apachejava_color_1.json', 'subtrees_apachejava_color_2.json',
+         'subtrees_apachejavanew_color_1.json', 'subtrees_apachejavanew_color_2.json',
+         'subtrees_cleanapachejava_color_1.json', 'subtrees_cleanapachejava_color_2.json',
+         'subtrees_cleanapachejava_color_3.json', 'subtrees_cleanapachejava_color_4.json',
+         'subtrees_cleanapachejava_color_5.json', 'subtrees_cleanapachejava_color_6.json',
+         'subtrees_cleanapachejava_color_7.json']
 
-# zero_nodes = dict()
-# all_f_counts = 0
-# for commit, files in subtrees.items():
-#     f_count = 0
-#     for f in files:
-#         if len(f[1][0]) == 0 or len(f[2][0]) == 0:
-#             f_count += 1
-#     if f_count:
-#         zero_nodes[commit] = f_count
-#         all_f_counts += f_count
+# valid_ast = dict()
+# test_ast = dict()
 #
-# subtrees_cp = dict()
-# for commit, files in subtrees.items():
-#     new_files = []
-#     for f in files:
-#         if len(f[1][0]) == 0 and len(f[2][0]) == 0:
-#             continue
-#         elif len(f[1][0]) == 0:
-#             f[1][0].append('None')
-#         elif len(f[2][0]) == 0:
-#             f[2][0].append('None')
-#         new_files.append(f)
+# for f in files:
+#     with open('data/' + f) as fp:
+#         asts = json.load(fp)
+#     for id in test:
+#         if id in asts:
+#             test_ast[id] = asts[id]
+#     print('test finished.')
+#     for id in valid:
+#         if id in asts:
+#             valid_ast[id] = asts[id]
+#     print('valid finished.')
+#     print('file finished.')
 #
-#     if len(new_files):
-#         subtrees_cp[commit] = new_files
+# print(len(test_ast))
+# with open('data/balance_test.json', 'w') as fp:
+#     json.dump(test_ast, fp)
+#
+# print(len(valid_ast))
+# with open('data/balance_valid.json', 'w') as fp:
+#     json.dump(valid_ast, fp)
+#
+# print('test and valid finished.')
 
-df = pd.read_csv(data_path + '/rawdata.csv')
-df = df[['commit_id', 'buggy']]
-df.set_index('commit_id', inplace=True)
-label_dict = df.to_dict()['buggy']
-subtree_list = list(subtrees_cp.items())
-n_buggy = len([cid for cid, _ in subtree_list if label_dict[cid]])
+size = 25000
+for i in range((len(train) // size) + 1):
+    train_ast = dict()
+    for f in files:
+        with open('data/' + f) as fp:
+            asts = json.load(fp)
+        for id in train[i*size:(i+1)*size]:
+            if id in asts:
+                train_ast[id] = asts[id]
+        print('switching file ...')
+    print('ast size: {}'.format(len(train_ast)))
+    with open('data/balance_train_{}.json'.format(i+1), 'w') as fp:
+        json.dump(train_ast, fp)
+    print('written on file, next bucket ...')
 
-np.random.shuffle(subtree_list)
 
-with open(os.path.join(data_path, 'subtrees_0.25_val.json'), 'w') as file:
-    json.dump(dict([(k, v) for k, v in subtree_list[:350]]), file)
-
-with open(os.path.join(data_path, 'subtrees_0.25_test.json'), 'w') as file:
-    json.dump(dict([(k, v) for k, v in subtree_list[350:700]]), file)
-
-with open(os.path.join(data_path, 'subtrees_0.25_train.json'), 'w') as file:
-    json.dump(dict([(k, v) for k, v in subtree_list[700:]]), file)
-
+# keys = pd.read_csv('data/keys_cleanapachejava_ast.csv')
+# print(len(keys))
+# keys = keys.drop_duplicates()
+# print(len(keys))
+# keys = keys['commit_id']
+#
+# files = ['subtrees_balancedcleanapachejava_color_1.json', 'subtrees_balancedcleanapachejava_color_2.json',
+#          'subtrees_cleanapachejava_color_1.json', 'subtrees_cleanapachejava_color_2.json',
+#          'subtrees_cleanapachejava_color_3.json', 'subtrees_cleanapachejava_color_4.json',
+#          'subtrees_cleanapachejava_color_5.json']
+#
+# size = 10000
+# for i in range((len(keys) // size) + 1):
+#     newast = dict()
+#     for f in files:
+#         with open('data/' + f) as fp:
+#             asts = json.load(fp)
+#         for id in keys[i*size:(i+1)*size]:
+#             if id in asts:
+#                 newast[id] = asts[id]
+#         print('switching file ...')
+#     print('ast size: {}'.format(len(newast)))
+#     with open('data/subtree_cleanapachejava_new_{}.json'.format(i+1), 'w') as fp:
+#         json.dump(newast, fp)
+#     print('written on file, next bucket ...')
