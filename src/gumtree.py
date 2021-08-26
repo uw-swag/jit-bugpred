@@ -233,9 +233,9 @@ class RunHandler:
                 dates.append(int(commit.committer_date.timestamp()))
                 if len(filtered) % 1000 == 0:
                     pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates})\
-                        .to_csv(os.path.join(data_path, 'apachejavanew_filtered.csv'), index=False)
+                        .to_csv(os.path.join(data_path, 'apachejavapython_filtered.csv'), index=False)
         pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates}) \
-            .to_csv(os.path.join(data_path, 'apachejavanew_filtered.csv'), index=False)
+            .to_csv(os.path.join(data_path, 'apachejavapython_filtered.csv'), index=False)
 
     def store_subtrees(self):
         gumtree = GumTreeDiff()

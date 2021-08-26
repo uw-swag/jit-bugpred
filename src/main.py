@@ -15,19 +15,20 @@ if __name__ == '__main__':
     parser.add_argument("--test", action="store_true")
     args = parser.parse_args()
 
-    epochs = 40
+    epochs = 30
     batch_size = 1
     n_classes = 2
     data_dict = {
-        'train': ['/balance_train_1.json', '/balance_train_2.json'],
-        'val': ['/balance_valid.json'],
-        'test': ['/balance_test.json'],
-        'labels': '/balance_labels.json'
+        'train': ['/unbalance_train_1.json', '/unbalance_train_2.json', '/unbalance_train_3.json',
+                  '/unbalance_train_4.json', '/unbalance_train_5.json', '/unbalance_train_6.json'],
+        'val': ['/unbalance_valid.json'],
+        'test': ['/apache_test.json'],
+        'labels': '/unbalance_labels.json'
     }
     commit_lists = {
-        'train': '/balance_train.csv',
-        'val': '/balance_valid.csv',
-        'test': '/balance_test.csv'
+        'train': '/unbalance_train.csv',
+        'val': '/unbalance_valid.csv',
+        'test': '/unbalance_test.csv'
     }
     dataset = ASTDataset(data_dict, commit_lists, special_token=True)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2    # plus supernode node feature and node colors
