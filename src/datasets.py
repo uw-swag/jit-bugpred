@@ -15,13 +15,19 @@ HIDDEN_SIZE = 768
 
 
 class ASTDataset(Dataset):
-    def __init__(self, data_dict, commit_lists, special_token=True, transform=None):
+    def __init__(self, data_dict, commit_lists, special_token=True, cross_lingual=False, transform=None):
         self.transform = transform
         self.special_token = special_token
+        self.cross_lingual = cross_lingual
         self.data_dict = data_dict
         self.commit_lists = commit_lists
-        with open(data_path + self.data_dict['labels']) as file:
-            self.labels = json.load(file)
+        with open(data_path + 'lang_map.json') as file:
+            self.language_map = json.load(file)
+        with open(data_path + self.data_dict['labels'][0]) as file:
+            jlabels = json.load(file)
+        with open(data_path + self.data_dict['labels'][1]) as file:
+            plabels = json.load(file)
+        self.labels = {**jlabels, **plabels}
         self.ast_dict = None
         self.c_list = None
         self.file_index = 0
@@ -64,7 +70,7 @@ class ASTDataset(Dataset):
                                                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
                                 corpus.append(feature)
 
-        vectorizer = CountVectorizer(lowercase=False, max_features=400000,
+        vectorizer = CountVectorizer(lowercase=False,
                                      preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
 
@@ -127,6 +133,11 @@ class ASTDataset(Dataset):
                     feat_type = node_feat.split(':')[0]
                     file_node_tokens[i] = feat_type + ' ' + '<' + feat_type[
                                                                   :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
+        if self.cross_lingual and self.mode == 'test':
+            print('test in cross-lingual mode')
+            mappable = [t for t in file_node_tokens if t in self.language_map]
+            file_node_tokens = [self.language_map[t] if t in mappable else t for t in file_node_tokens]
+            print('{} tokens out of {} tokens mapped from python to java.'.format(len(mappable), len(file_node_tokens)))
         # fix the data later to remove the code above.
         features = self.vectorizer_model.transform(file_node_tokens).astype(np.float32)
         # add color feature at the end of features
