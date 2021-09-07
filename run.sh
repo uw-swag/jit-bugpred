@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --account=def-m2nagapp
-#SBATCH --gres=gpu:p100:1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=24G
+#SBATCH --gres=gpu:v100:2
+#SBATCH --cpus-per-task=3
+#SBATCH --mem=45G
 #SBATCH --time=3-00:00:00
 #SBATCH --mail-user=hosseinkeshavarz1997@gmail.com
 #SBATCH --mail-type=ALL

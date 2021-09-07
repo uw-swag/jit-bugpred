@@ -64,7 +64,8 @@ class ASTDataset(Dataset):
                                                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
                                 corpus.append(feature)
 
-        vectorizer = CountVectorizer(lowercase=False, preprocessor=lambda x: x, binary=True)
+        vectorizer = CountVectorizer(lowercase=False, max_features=400000,
+                                     preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
 
     def set_mode(self, mode):
