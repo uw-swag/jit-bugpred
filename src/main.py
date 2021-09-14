@@ -29,7 +29,7 @@ if __name__ == '__main__':
         'val': '/balance_valid.csv',
         'test': '/apache_test.csv'
     }
-    dataset = ASTDataset(data_dict, commit_lists, special_token=False)
+    dataset = ASTDataset(data_dict, commit_lists, special_token=True)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2    # plus supernode node feature and node colors
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32

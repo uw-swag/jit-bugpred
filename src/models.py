@@ -92,6 +92,45 @@ class GraphConvolution(nn.Module):
                + str(self.out_features) + ')'
 
 
+class AttentionModule(torch.nn.Module):
+    """
+    Attention Module to make a pass on graph. from FuncGNN implementation at https://github.com/aravi11/funcGNN/
+    """
+    def __init__(self, size):
+        """
+        :param args: Arguments object.
+        """
+        super(AttentionModule, self).__init__()
+        self.size = size
+        self.setup_weights()
+        self.init_parameters()
+
+    def setup_weights(self):
+        """
+        Defining weights.
+        """
+        self.weight_matrix = torch.nn.Parameter(torch.Tensor(self.size,
+                                                             self.size))
+
+    def init_parameters(self):
+        """
+        Initializing weights.
+        """
+        torch.nn.init.xavier_uniform_(self.weight_matrix)
+
+    def forward(self, embedding):
+        """
+        Making a forward propagation pass to create a graph level representation.
+        :param embedding: Result of the GCN.
+        :return representation: A graph level representation vector.
+        """
+        global_context = torch.mean(torch.matmul(embedding, self.weight_matrix), dim=0)
+        transformed_global = torch.tanh(global_context)
+        sigmoid_scores = torch.sigmoid(torch.mm(embedding, transformed_global.view(-1, 1)))
+        representation = torch.mm(torch.t(embedding), sigmoid_scores)
+        return representation
+
+
 class JITGNN(nn.Module):
     def __init__(self, hidden_size, message_size):
         super(JITGNN, self).__init__()
@@ -105,15 +144,16 @@ class JITGNN(nn.Module):
         self.gnn22 = GraphConvolution(message_size, message_size)
         self.gnn23 = GraphConvolution(message_size, message_size)
         self.gnn24 = GraphConvolution(message_size, message_size)
+        self.attention = AttentionModule(message_size)
         self.fc = nn.Linear(2 * message_size, 1)
 
     def forward(self, b_x, b_adj, a_x, a_adj):
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
         b_node_embeddings = self.gnn14(self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj), b_adj)
-        b_supernode = b_node_embeddings[-1, :]
+        b_embedding = self.attention(b_node_embeddings[:-1, :])
         a_node_embeddings = self.gnn24(self.gnn23(self.gnn22(self.gnn21(a_x, a_adj), a_adj), a_adj), a_adj)
-        a_supernode = a_node_embeddings[-1, :]
-        supernodes = torch.hstack([b_supernode, a_supernode])   # maybe a distance measure later
+        a_embedding = self.attention(a_node_embeddings[:-1, :])
+        supernodes = torch.hstack([b_embedding, a_embedding])   # maybe a distance measure later
 
         output = self.fc(supernodes)
         return output, supernodes
