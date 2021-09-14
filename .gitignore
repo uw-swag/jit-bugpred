@@ -2,6 +2,7 @@
 temp.py
 conf
 *.json
+!lang_map.json
 ast/code/*
 ast/output/*
 *.log
