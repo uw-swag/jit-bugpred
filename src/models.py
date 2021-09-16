@@ -207,7 +207,6 @@ class JITGNN(nn.Module):
         a_node_embeddings = self.gnn24(self.gnn23(self.gnn22(self.gnn21(a_x, a_adj), a_adj), a_adj), a_adj)
         a_embedding = self.attention(a_node_embeddings[:-1, :]).flatten()
         # agg = torch.hstack([b_embedding, a_embedding])   # maybe a distance measure later
-        print(b_embedding.shape)
         agg = self.tensor_net(b_embedding, a_embedding).flatten()
 
         output = self.fc(agg)
