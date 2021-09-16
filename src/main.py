@@ -19,17 +19,17 @@ if __name__ == '__main__':
     batch_size = 1
     n_classes = 2
     data_dict = {
-        'train': ['/balance_train_1.json', '/balance_train_2.json', '/balance_train_3.json'],
-        'val': ['/balance_valid.json'],
-        'test': ['/apache_test.json'],
-        'labels': '/balance_labels.json'
+        'train': ['/openstack_train_color.json'],
+        'val': ['/openstack_valid_color.json'],
+        'test': ['/openstack_test_color.json'],
+        'labels': '/openstack_labels.json'
     }
     commit_lists = {
-        'train': '/balance_train.csv',
-        'val': '/balance_valid.csv',
-        'test': '/apache_test.csv'
+        'train': '/openstack_train.csv',
+        'val': '/openstack_valid.csv',
+        'test': '/openstack_test.csv'
     }
-    dataset = ASTDataset(data_dict, commit_lists, special_token=True)
+    dataset = ASTDataset(data_dict, commit_lists, special_token=False)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2    # plus supernode node feature and node colors
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32

@@ -2,11 +2,11 @@
 #SBATCH --account=def-m2nagapp
 #SBATCH --gres=gpu:v100:2
 #SBATCH --cpus-per-task=3
-#SBATCH --mem=45G
+#SBATCH --mem=20G
 #SBATCH --time=3-00:00:00
 #SBATCH --mail-user=hosseinkeshavarz1997@gmail.com
 #SBATCH --mail-type=ALL
-#SBATCH --output=19_train_test.out
+#SBATCH --output=25_train_test.out
 #SBATCH --open-mode=append
 
 #module load python/3.6
