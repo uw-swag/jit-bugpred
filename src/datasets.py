@@ -77,6 +77,7 @@ class ASTDataset(Dataset):
 
     def switch_datafile(self):
         self.file_index += 1
+        self.file_index %= len(self.data_dict[self.mode])
         with open(data_path + self.data_dict[self.mode][self.file_index], 'r') as fp:
             self.ast_dict = json.load(fp)
 

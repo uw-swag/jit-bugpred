@@ -19,15 +19,15 @@ if __name__ == '__main__':
     batch_size = 1
     n_classes = 2
     data_dict = {
-        'train': ['/openstack_train_color.json'],
-        'val': ['/openstack_valid_color.json'],
-        'test': ['/openstack_test_color.json'],
-        'labels': '/openstack_labels.json'
+        'train': ['/1xsample_balance_train_1.json'],
+        'val': ['/1xsample_balance_valid.json'],
+        'test': ['/apache_test.json'],
+        'labels': '/balance_labels.json'
     }
     commit_lists = {
-        'train': '/openstack_train.csv',
-        'val': '/openstack_valid.csv',
-        'test': '/openstack_test.csv'
+        'train': '/1xsample_balance_train.csv',
+        'val': '/1xsample_balance_valid.csv',
+        'test': '/apache_Test.csv'
     }
     dataset = ASTDataset(data_dict, commit_lists, special_token=False)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2    # plus supernode node feature and node colors

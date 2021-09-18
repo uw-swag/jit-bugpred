@@ -2,20 +2,16 @@ import json
 import pandas as pd
 import numpy as np
 
-train = pd.read_csv('data/unbalance_train.csv')['commit_id']
-valid = pd.read_csv('data/unbalance_valid.csv')['commit_id']
+train = pd.read_csv('data/1xsample_balance_train.csv')['commit_id']
+valid = pd.read_csv('data/1xsample_balance_valid.csv')['commit_id']
 
-files = ['subtrees_apachejava_color_1.json', 'subtrees_apachejava_color_2.json',
-         'subtrees_apachejava_color_3.json', 'subtrees_apachejava_color_4.json',
-         'subtrees_cleanapachejava_color_1.json', 'subtrees_cleanapachejava_color_2.json',
-         'subtrees_cleanapachejava_color_3.json', 'subtrees_cleanapachejava_color_4.json',
-         'subtrees_cleanapachejava_color_5.json', 'subtrees_cleanapachejava_color_6.json',
-         'subtrees_cleanapachejava_color_7.json']
+train_files = ['balance_train_1.json', 'balance_train_2.json', 'balance_train_3.json']
+valid_files = ['balance_valid.json']
 
 valid_ast = dict()
 test_ast = dict()
 
-for f in files:
+for f in valid_files:
     with open('data/' + f) as fp:
         asts = json.load(fp)
 #     for id in test:
@@ -33,7 +29,7 @@ for f in files:
 #     json.dump(test_ast, fp)
 
 print(len(valid_ast))
-with open('data/unbalance_valid.json', 'w') as fp:
+with open('data/1xsample_balance_valid.json', 'w') as fp:
     json.dump(valid_ast, fp)
 
 print('test and valid finished.')
@@ -41,7 +37,7 @@ print('test and valid finished.')
 size = 15000
 for i in range((len(train) // size) + 1):
     train_ast = dict()
-    for f in files:
+    for f in train_files:
         with open('data/' + f) as fp:
             asts = json.load(fp)
         for id in train[i*size:(i+1)*size]:
@@ -49,7 +45,7 @@ for i in range((len(train) // size) + 1):
                 train_ast[id] = asts[id]
         print('switching file ...')
     print('ast size: {}'.format(len(train_ast)))
-    with open('data/unbalance_train_{}.json'.format(i+1), 'w') as fp:
+    with open('data/1xsample_balance_train_{}.json'.format(i+1), 'w') as fp:
         json.dump(train_ast, fp)
     print('written on file, next bucket ...')
 
