@@ -27,7 +27,17 @@ class ASTDataset(Dataset):
         self.file_index = 0
         self.mode = 'train'
         self.vectorizer_model = None
+        self.metrics = self.load_metrics()
         self.learn_vectorizer()
+
+    def load_metrics(self):
+        metrics = pd.read_csv(os.path.join(data_path, 'apache_metrics.csv'))
+        # metrics = metrics.drop(
+        #     ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr'],
+        #     axis=1)
+        metrics = metrics[['commit_id', 'la', 'ld', 'nf', 'nd', 'ns', 'ent']]
+        metrics = metrics.fillna(value=0)
+        return metrics
 
     def learn_vectorizer(self):
         files = list(self.data_dict['train']) + list(self.data_dict['val'])
@@ -154,6 +164,9 @@ class ASTDataset(Dataset):
             except:
                 self.switch_datafile()
         label = self.labels[c]
+        metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == c]
+                                                   .drop(columns=['commit_id']).to_numpy(dtype=np.float32))[0, :])
+
         b_node_tokens, b_edges, b_colors = [], [[], []], []
         a_node_tokens, a_edges, a_colors = [], [[], []], []
         b_nodes_so_far, a_nodes_so_far = 0, 0
@@ -161,14 +174,14 @@ class ASTDataset(Dataset):
             b_node_tokens += [' '.join(node) for node in file[1][0]]
             b_colors += [c for c in file[1][2]]
             b_edges = [
-                b_edges[0] + [s + b_nodes_so_far for s in file[1][1][0]],  # source nodes
-                b_edges[1] + [d + b_nodes_so_far for d in file[1][1][1]]  # destination nodes
+                b_edges[0] + [s + b_nodes_so_far for s in file[1][1][0]],   # source nodes
+                b_edges[1] + [d + b_nodes_so_far for d in file[1][1][1]]    # destination nodes
             ]
             a_node_tokens += [' '.join(node) for node in file[2][0]]
             a_colors += [c for c in file[2][2]]
             a_edges = [
-                a_edges[0] + [s + a_nodes_so_far for s in file[2][1][0]],  # source nodes
-                a_edges[1] + [d + a_nodes_so_far for d in file[2][1][1]]  # destination nodes
+                a_edges[0] + [s + a_nodes_so_far for s in file[2][1][0]],   # source nodes
+                a_edges[1] + [d + a_nodes_so_far for d in file[2][1][1]]    # destination nodes
             ]
 
             b_n_nodes = len(file[1][0])
@@ -184,7 +197,7 @@ class ASTDataset(Dataset):
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
         after_embeddings = self.get_embedding(a_node_tokens, a_colors)
         after_adj = self.get_adjacency_matrix(a_nodes_so_far, a_edges[0], a_edges[1])
-        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label]
+        training_data = [before_embeddings, before_adj, after_embeddings, after_adj, label, metrics]
 
         if not b_nodes_so_far and not a_nodes_so_far:
             print('commit {} has no file tensors.'.format(c))

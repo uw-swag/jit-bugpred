@@ -30,7 +30,7 @@ if __name__ == '__main__':
         'test': '/apache_test.csv'
     }
     dataset = ASTDataset(data_dict, commit_lists, special_token=False)
-    hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2    # plus supernode node feature and node colors
+    hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2 + 6   # plus supernode node feature and node colors and metrics
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 

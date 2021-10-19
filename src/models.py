@@ -200,7 +200,7 @@ class JITGNN(nn.Module):
         self.tensor_net = TensorNetworkModule(message_size, self.neuron_size)
         self.fc = nn.Linear(self.neuron_size, 1)
 
-    def forward(self, b_x, b_adj, a_x, a_adj):
+    def forward(self, b_x, b_adj, a_x, a_adj, metrics):
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
         b_node_embeddings = self.gnn14(self.gnn13(self.gnn12(self.gnn11(b_x, b_adj), b_adj), b_adj), b_adj)
         b_embedding = self.attention(b_node_embeddings[:-1, :]).flatten()
@@ -208,7 +208,7 @@ class JITGNN(nn.Module):
         a_embedding = self.attention(a_node_embeddings[:-1, :]).flatten()
         # agg = torch.hstack([b_embedding, a_embedding])   # maybe a distance measure later
         agg = self.tensor_net(b_embedding, a_embedding).flatten()
-
-        output = self.fc(agg)
+        features = torch.hstack([agg, metrics])
+        output = self.fc(features)
         return output, agg
 
