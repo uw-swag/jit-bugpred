@@ -63,6 +63,8 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
         print('len(data) is {}'.format(str(len(dataset))))
         for i in range(len(dataset)):
             data = dataset[i]
+            if data is None:
+                continue
             label = data[4]
             optimizer.zero_grad()
             model = model.to(device)
@@ -110,6 +112,8 @@ def pretrain(model, optimizer, criterion, epochs, dataset, so_far=0, resume=None
         with torch.no_grad():
             for i in range(len(dataset)):
                 data = dataset[i]
+                if data is None:
+                    continue
                 label = data[4]
                 model = model.to(device)
                 output, features = model(data[0].to(device), data[1].to(device),
@@ -193,6 +197,8 @@ def test(model, dataset, clf):
     with torch.no_grad():
         for i in range(len(dataset)):
             data = dataset[i]
+            if data is None:
+                continue
             label = data[4]
             model = model.to(device)
             output, features = model(data[0].to(device), data[1].to(device),

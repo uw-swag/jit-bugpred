@@ -64,7 +64,7 @@ class ASTDataset(Dataset):
                                                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
                                 corpus.append(feature)
 
-        vectorizer = CountVectorizer(lowercase=False, max_features=400000,
+        vectorizer = CountVectorizer(lowercase=False, max_features=100000,
                                      preprocessor=lambda x: x, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
 
@@ -175,6 +175,10 @@ class ASTDataset(Dataset):
             a_n_nodes = len(file[2][0])
             b_nodes_so_far += b_n_nodes
             a_nodes_so_far += a_n_nodes
+
+        if b_nodes_so_far + a_nodes_so_far > 40000 or b_nodes_so_far > 25000 or a_nodes_so_far > 25000:
+            print('large commit, skip!')
+            return None
 
         before_embeddings = self.get_embedding(b_node_tokens, b_colors)
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
