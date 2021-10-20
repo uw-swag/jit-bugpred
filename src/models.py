@@ -198,7 +198,7 @@ class JITGNN(nn.Module):
         self.gnn24 = GraphConvolution(message_size, message_size)
         self.attention = AttentionModule(message_size)
         self.tensor_net = TensorNetworkModule(message_size, self.neuron_size)
-        self.fc = nn.Linear(self.neuron_size, 1)
+        self.fc = nn.Linear(self.neuron_size + 6, 1)
 
     def forward(self, b_x, b_adj, a_x, a_adj, metrics):
         # change the design here. add adjacency matrix to graph convolution class so not pass it every time.
