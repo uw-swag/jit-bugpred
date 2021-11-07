@@ -33,11 +33,12 @@ class ASTDataset(Dataset):
 
     def load_metrics(self, metrics_file):
         self.metrics = pd.read_csv(os.path.join(data_path, metrics_file))
-        self.metrics = self.metrics.drop(
-            ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr', 'project',
-             'buggy', 'fix'],
-            axis=1, errors='ignore')
-        # metrics = metrics[['commit_id', 'la', 'ld', 'nf', 'nd', 'ns', 'ent']]
+        # self.metrics = self.metrics.drop(
+        #     ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr', 'project',
+        #      'buggy', 'fix'],
+        #     axis=1, errors='ignore')
+        self.metrics = self.metrics[['commit_id', 'la', 'ld', 'nf', 'nd', 'ns', 'ent',
+                                     'ndev', 'age', 'nuc', 'aexp', 'arexp', 'asexp']]
         self.metrics = self.metrics.fillna(value=0)
 
     def learn_vectorizer(self):
@@ -190,9 +191,9 @@ class ASTDataset(Dataset):
             b_nodes_so_far += b_n_nodes
             a_nodes_so_far += a_n_nodes
 
-        if b_nodes_so_far + a_nodes_so_far > 28000 or b_nodes_so_far > 18000 or a_nodes_so_far > 18000:
-            print('{} is a large commit, skip!'.format(c))
-            return None
+        # if b_nodes_so_far + a_nodes_so_far > 28000 or b_nodes_so_far > 18000 or a_nodes_so_far > 18000:
+        #     print('{} is a large commit, skip!'.format(c))
+        #     return None
 
         before_embeddings = self.get_embedding(b_node_tokens, b_colors)
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
