@@ -18,6 +18,7 @@ if __name__ == '__main__':
     epochs = 15
     batch_size = 1
     n_classes = 2
+
     data_dict = {
         'train': ['/balance_train_1.json', '/balance_train_2.json', '/balance_train_3.json'],
         'val': ['/balance_valid.json'],
@@ -29,12 +30,15 @@ if __name__ == '__main__':
         'val': '/balance_valid.csv',
         'test': '/apache_test.csv'
     }
-    dataset = ASTDataset(data_dict, commit_lists, special_token=False)
+    metrics_file = 'apache_metrics_kamei.csv'
+
+    dataset = ASTDataset(data_dict, commit_lists, metrics_file, special_token=False)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2   # plus supernode node feature and node colors
+    metric_size = dataset.metrics.shape[1] - 1      # exclude commit_id column
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 
-    model = JITGNN(hidden_size, message_size)
+    model = JITGNN(hidden_size, message_size, metric_size)
     criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters())
 

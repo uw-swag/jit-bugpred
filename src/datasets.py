@@ -15,7 +15,7 @@ HIDDEN_SIZE = 768
 
 
 class ASTDataset(Dataset):
-    def __init__(self, data_dict, commit_lists, special_token=True, transform=None):
+    def __init__(self, data_dict, commit_lists, metrics_file, special_token=True, transform=None):
         self.transform = transform
         self.special_token = special_token
         self.data_dict = data_dict
@@ -27,17 +27,18 @@ class ASTDataset(Dataset):
         self.file_index = 0
         self.mode = 'train'
         self.vectorizer_model = None
-        self.metrics = self.load_metrics()
+        self.metrics = None
+        self.load_metrics(metrics_file)
         self.learn_vectorizer()
 
-    def load_metrics(self):
-        metrics = pd.read_csv(os.path.join(data_path, 'apache_metrics.csv'))
-        # metrics = metrics.drop(
-        #     ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr'],
-        #     axis=1)
-        metrics = metrics[['commit_id', 'la', 'ld', 'nf', 'nd', 'ns', 'ent']]
-        metrics = metrics.fillna(value=0)
-        return metrics
+    def load_metrics(self, metrics_file):
+        self.metrics = pd.read_csv(os.path.join(data_path, metrics_file))
+        self.metrics = self.metrics.drop(
+            ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr', 'project',
+             'buggy', 'fix'],
+            axis=1, errors='ignore')
+        # metrics = metrics[['commit_id', 'la', 'ld', 'nf', 'nd', 'ns', 'ent']]
+        self.metrics = self.metrics.fillna(value=0)
 
     def learn_vectorizer(self):
         files = list(self.data_dict['train']) + list(self.data_dict['val'])
@@ -189,8 +190,8 @@ class ASTDataset(Dataset):
             b_nodes_so_far += b_n_nodes
             a_nodes_so_far += a_n_nodes
 
-        if b_nodes_so_far + a_nodes_so_far > 40000 or b_nodes_so_far > 25000 or a_nodes_so_far > 25000:
-            print('large commit, skip!')
+        if b_nodes_so_far + a_nodes_so_far > 28000 or b_nodes_so_far > 18000 or a_nodes_so_far > 18000:
+            print('{} is a large commit, skip!'.format(c))
             return None
 
         before_embeddings = self.get_embedding(b_node_tokens, b_colors)
