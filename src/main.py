@@ -20,21 +20,23 @@ if __name__ == '__main__':
     n_classes = 2
 
     data_dict = {
-        'train': ['/openstack_train_color.json'],
-        'val': ['/openstack_valid_color.json'],
-        'test': ['/openstack_test_color.json'],
-        'labels': '/openstack_labels.json'
+        'train': ['/apache_train_50_all_1.json', '/apache_train_50_all_2.json',
+                  '/apache_train_50_all_3.json', '/apache_train_50_all_4.json'],
+        'val': ['/apache_valid_50_all.json'],
+        'test': ['/apache_test.json'],
+        'labels': '/apache_labels.json'
     }
     commit_lists = {
-        'train': '/openstack_train.csv',
-        'val': '/openstack_valid.csv',
-        'test': '/openstack_test.csv'
+        'train': '/apache_train_50_all.csv',
+        'val': '/apache_valid_50_all.csv',
+        'test': '/apache_test.csv'
     }
-    metrics_file = 'openstack.csv'
+    # metrics_file = 'apache_metrics_kamei.csv'
 
-    dataset = ASTDataset(data_dict, commit_lists, metrics_file, special_token=False)
+    dataset = ASTDataset(data_dict, commit_lists, metrics_file=None, special_token=False)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2   # plus supernode node feature and node colors
-    metric_size = dataset.metrics.shape[1] - 1      # exclude commit_id column
+    # metric_size = dataset.metrics.shape[1] - 1      # exclude commit_id column
+    metric_size = 0
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 
@@ -58,9 +60,9 @@ if __name__ == '__main__':
     # resume_training(checkpoint, saved_stats, model, optimizer, criterion, epochs, dataset)
 
     # plotting performance and loss plots
-    saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
-    print('stats loaded.')
-    plot_training(saved_stats)
+    # saved_stats = torch.load(os.path.join(BASE_PATH, 'trained_models/stats.pt'))
+    # print('stats loaded.')
+    # plot_training(saved_stats)
 
     if args.test:
         # need map_location=torch.device('cpu') if on CPU
