@@ -187,7 +187,7 @@ class RunHandler:
                 self.save_file = filepath
             else:
                 self.save_file = filepath
-        print('current file: {}\n'.format(self.save_file))
+        print('current file: {}\nast dict size: {}\n'.format(self.save_file, len(self.ast_dict)))
         self.already = pd.read_csv(os.path.join(data_path, self.already_file))['commit_id'].tolist()
         df = pd.read_csv(os.path.join(data_path, self.commit_file))
         commits = df['commit_id']
@@ -221,9 +221,9 @@ class RunHandler:
         filtered, projects, dates = [], [], []
         for c, p in self.commits.items():
             try:
-                commit = GitRepository('repos/' + p.split('/')[1]).get_commit(c)
+                commit = GitRepository('../repos/' + p.split('/')[1]).get_commit(c)
             except ValueError:  # for hadoop repos
-                commit = GitRepository('repos/' + p.split('/')[1].split('-')[0]).get_commit(c)
+                commit = GitRepository('../repos/' + p.split('/')[1].split('-')[0]).get_commit(c)
             logging.info('Commit #%s in %s from %s', commit.hash, commit.committer_date, commit.author.name)
             if self.is_filtered(commit):
                 continue
@@ -235,7 +235,7 @@ class RunHandler:
                     pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates})\
                         .to_csv(os.path.join(data_path, 'apachejavapython_filtered.csv'), index=False)
         pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates}) \
-            .to_csv(os.path.join(data_path, 'apachejavapython_filtered.csv'), index=False)
+            .to_csv(os.path.join(data_path, 'whatever_filtered.csv'), index=False)
 
     def store_subtrees(self):
         gumtree = GumTreeDiff()
@@ -302,10 +302,10 @@ class RunHandler:
 
 
 if __name__ == '__main__':
-    RunHandler(commit_file='apachejavanew_filtered.csv',
-               ast_filename='subtrees_apachejavanew_color',
-               already_file='keys_apachejava_ast.csv',
-               types=['.java']).store_subtrees()
+    RunHandler(commit_file='whatever.csv',
+               ast_filename='subtrees_whatever_color',
+               already_file='keys_whatever_ast.csv',
+               types=['.java']).filter_commits()
     # subtree = SubTreeExtractor()
     # subtree.read_ast()
     # subtree.extract_subtree()

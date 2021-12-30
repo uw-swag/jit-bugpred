@@ -27,8 +27,8 @@ class ASTDataset(Dataset):
         self.file_index = 0
         self.mode = 'train'
         self.vectorizer_model = None
-        self.metrics = None
-        self.load_metrics(metrics_file)
+        # self.metrics = None
+        # self.load_metrics(metrics_file)
         self.learn_vectorizer()
 
     def load_metrics(self, metrics_file):
@@ -166,8 +166,9 @@ class ASTDataset(Dataset):
             except:
                 self.switch_datafile()
         label = self.labels[c]
-        metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == c]
-                                                   .drop(columns=['commit_id']).to_numpy(dtype=np.float32))[0, :])
+        # metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == c]
+        #                                            .drop(columns=['commit_id']).to_numpy(dtype=np.float32))[0, :])
+        metrics = None
 
         b_node_tokens, b_edges, b_colors = [], [[], []], []
         a_node_tokens, a_edges, a_colors = [], [[], []], []
