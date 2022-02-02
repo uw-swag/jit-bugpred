@@ -203,12 +203,12 @@ class RunHandler:
         return False
 
     def is_filtered(self, commit):
-        if commit.files > 100:
-            logging.info('Too many files.')
-            return True
-        if commit.lines > 10000:
-            logging.info('Too many lines.')
-            return True
+        # if commit.files > 100:
+        #     logging.info('Too many files.')
+        #     return True
+        # if commit.lines > 10000:
+        #     logging.info('Too many lines.')
+        #     return True
         if not self.has_modification_with_file_type(commit):
             logging.info('No file in given language')
             return True
@@ -233,9 +233,9 @@ class RunHandler:
                 dates.append(int(commit.committer_date.timestamp()))
                 if len(filtered) % 1000 == 0:
                     pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates})\
-                        .to_csv(os.path.join(data_path, 'apachejavapython_filtered.csv'), index=False)
+                        .to_csv(os.path.join(data_path, 'paper_filtered_2.csv'), index=False)
         pd.DataFrame({'commit_id': filtered, 'project': projects, 'date': dates}) \
-            .to_csv(os.path.join(data_path, 'whatever_filtered.csv'), index=False)
+            .to_csv(os.path.join(data_path, 'paper_filtered_2.csv'), index=False)
 
     def store_subtrees(self):
         gumtree = GumTreeDiff()
@@ -302,7 +302,7 @@ class RunHandler:
 
 
 if __name__ == '__main__':
-    RunHandler(commit_file='whatever.csv',
+    RunHandler(commit_file='paper_filtered_1.csv',
                ast_filename='subtrees_whatever_color',
                already_file='keys_whatever_ast.csv',
                types=['.java']).filter_commits()

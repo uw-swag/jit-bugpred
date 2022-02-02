@@ -2,9 +2,9 @@ import json
 import pandas as pd
 import numpy as np
 
-train = pd.read_csv('data/apache_train_50_all.csv')['commit_id']
-valid = pd.read_csv('data/apache_valid_50_all.csv')['commit_id']
-test = pd.read_csv('data/apache_test.csv')['commit_id']
+train = pd.read_csv('data/apache_train_50_80.csv')['commit_id']
+valid = pd.read_csv('data/apache_valid_50_80.csv')['commit_id']
+#test = pd.read_csv('data/apache_test.csv')['commit_id']
 
 files = ['subtrees_apachejava_color_1.json', 'subtrees_apachejava_color_2.json','subtrees_apachejava_color_3.json',
          'subtrees_apachejava_color_4.json', 'subtrees_clean_color_1.json', 'subtrees_clean_color_2.json',
@@ -21,23 +21,23 @@ for f in files:
     print('valid finished.')
 
 print(len(valid_ast))
-with open('data/apache_valid_50_all.json', 'w') as fp:
+with open('data/apache_valid_50_80.json', 'w') as fp:
     json.dump(valid_ast, fp)
 print('valid saved.')
 
-test_ast = dict()
-for f in files:
-    with open('data/' + f) as fp:
-        asts = json.load(fp)
-    for id in test:
-        if id in asts:
-            test_ast[id] = asts[id]
-    print('test finished.')
-
-print(len(test_ast))
-with open('data/apache_test.json', 'w') as fp:
-    json.dump(test_ast, fp)
-print('test saved.')
+#test_ast = dict()
+#for f in files:
+#    with open('data/' + f) as fp:
+#        asts = json.load(fp)
+#    for id in test:
+#        if id in asts:
+#            test_ast[id] = asts[id]
+#    print('test finished.')
+#
+#print(len(test_ast))
+#with open('data/apache_test.json', 'w') as fp:
+#    json.dump(test_ast, fp)
+#print('test saved.')
 
 size = 10000
 for i in range((len(train) // size) + 1):
@@ -50,7 +50,7 @@ for i in range((len(train) // size) + 1):
                 train_ast[id] = asts[id]
         print('switching file ...')
     print('ast size: {}'.format(len(train_ast)))
-    with open('data/apache_train_50_all_{}.json'.format(i+1), 'w') as fp:
+    with open('data/apache_train_50_80_{}.json'.format(i + 1), 'w') as fp:
         json.dump(train_ast, fp)
     print('written on file, next bucket ...')
 print('train saved.')

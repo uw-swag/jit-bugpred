@@ -31,12 +31,11 @@ if __name__ == '__main__':
         'val': '/apache_valid_50_all.csv',
         'test': '/apache_test.csv'
     }
-    # metrics_file = 'apache_metrics_kamei.csv'
+    metrics_file = 'apache_metrics_kamei.csv'
 
-    dataset = ASTDataset(data_dict, commit_lists, metrics_file=None, special_token=False)
+    dataset = ASTDataset(data_dict, commit_lists, metrics_file=metrics_file, special_token=False)
     hidden_size = len(dataset.vectorizer_model.vocabulary_) + 2   # plus supernode node feature and node colors
-    # metric_size = dataset.metrics.shape[1] - 1      # exclude commit_id column
-    metric_size = 0
+    metric_size = dataset.metrics.shape[1] - 1      # exclude commit_id column
     print('hidden_size is {}'.format(hidden_size))
     message_size = 32
 

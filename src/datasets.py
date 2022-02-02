@@ -1,5 +1,7 @@
 import json
 import os
+import pickle
+
 import pandas as pd
 import numpy as np
 import scipy.sparse as sp
@@ -27,16 +29,16 @@ class ASTDataset(Dataset):
         self.file_index = 0
         self.mode = 'train'
         self.vectorizer_model = None
-        # self.metrics = None
-        # self.load_metrics(metrics_file)
+        self.metrics = None
+        self.load_metrics(metrics_file)
         self.learn_vectorizer()
 
     def load_metrics(self, metrics_file):
         self.metrics = pd.read_csv(os.path.join(data_path, metrics_file))
-        # self.metrics = self.metrics.drop(
-        #     ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr', 'project',
-        #      'buggy', 'fix'],
-        #     axis=1, errors='ignore')
+        self.metrics = self.metrics.drop(
+            ['author_date', 'bugcount', 'fixcount', 'revd', 'tcmt', 'oexp', 'orexp', 'osexp', 'osawr', 'project',
+             'buggy', 'fix'],
+            axis=1, errors='ignore')
         self.metrics = self.metrics[['commit_id', 'la', 'ld', 'nf', 'nd', 'ns', 'ent',
                                      'ndev', 'age', 'nuc', 'aexp', 'arexp', 'asexp']]
         self.metrics = self.metrics.fillna(value=0)
@@ -76,9 +78,11 @@ class ASTDataset(Dataset):
                                                                       :3].upper() + '>'  # e.g. number: 14 -> number <NUM>
                                 corpus.append(feature)
 
-        vectorizer = CountVectorizer(lowercase=False, max_features=100000,
-                                     preprocessor=lambda x: x, binary=True)
+        vectorizer = CountVectorizer(lowercase=False, max_features=100000, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
+
+        with open(os.path.join(BASE_PATH, 'trained_models/vectorizer.pkl'), 'wb') as fp:
+            pickle.dump(vectorizer, fp)
 
     def set_mode(self, mode):
         self.mode = mode
@@ -166,9 +170,13 @@ class ASTDataset(Dataset):
             except:
                 self.switch_datafile()
         label = self.labels[c]
-        # metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == c]
-        #                                            .drop(columns=['commit_id']).to_numpy(dtype=np.float32))[0, :])
-        metrics = None
+        try:
+            metrics = torch.FloatTensor(self.normalize(self.metrics[self.metrics['commit_id'] == c]
+                                                       .drop(columns=['commit_id']).to_numpy(dtype=np.float32))[0, :])
+        except IndexError:
+            # commit id not in commit metric set
+            dim = self.metrics[self.metrics['commit_id'] == c].drop(columns=['commit_id']).shape[1]
+            metrics = torch.zeros(dim, dtype=torch.float)
 
         b_node_tokens, b_edges, b_colors = [], [[], []], []
         a_node_tokens, a_edges, a_colors = [], [[], []], []
@@ -192,9 +200,9 @@ class ASTDataset(Dataset):
             b_nodes_so_far += b_n_nodes
             a_nodes_so_far += a_n_nodes
 
-        # if b_nodes_so_far + a_nodes_so_far > 28000 or b_nodes_so_far > 18000 or a_nodes_so_far > 18000:
-        #     print('{} is a large commit, skip!'.format(c))
-        #     return None
+        if b_nodes_so_far + a_nodes_so_far > 29000 or b_nodes_so_far > 19000 or a_nodes_so_far > 19000:
+            print('{} is a large commit, skip!'.format(c))
+            return None
 
         before_embeddings = self.get_embedding(b_node_tokens, b_colors)
         before_adj = self.get_adjacency_matrix(b_nodes_so_far, b_edges[0], b_edges[1])
