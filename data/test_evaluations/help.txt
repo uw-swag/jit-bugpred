@@ -1,0 +1,25 @@
+> explanation of the files
+
+    - [DATASET_NAME]_predictions: All the predictions made by the three models discussed (Baseline, JITLine, and JITGNN). 
+      The columns indicate both the probability returned by the models and the predictions by setting the threshold to 0.50. 
+      That is, the samples that have probabilities higher than 0.50 are considered to be predicted as bug-inducing. 
+      All other files of the [DATASET_NAME] are subsets of the data in this file.
+
+    - [DATASET_NAME]_all_correct: The commits all three models predict correctly (the prediction and the actual label match).
+    
+    - [DATASET_NAME]_all_incorrect: The commits all three models predict incorrectly (the prediction and the actual label are different)
+        
+    - [DATASET_NAME]_gnn_correct_others_incorrect: The commits JITGNN predicts correctly but Baseline and JITLine predict incorrectly.
+        
+    - [DATASET_NAME]_gnn_base_correct_line_incorrect: The commits JITGNN and Baseline predict correctly but JITLine predicts incorrectly.
+        
+    - [DATASET_NAME]_gnn_line_correct_base_incorrect: The commits JITGNN and JITLine predict correctly but Baseline predicts incorrectly.
+        
+    - [DATASET_NAME]_gnn_incorrect_others_correct: The commits JITGNN predicts incorrectly but Baseline and JITLine predict correctly.
+        
+    - [DATASET_NAME]_gnn_base_incorrect_line_correct: The commits JITGNN and Baseline predict incorrectly but JITLine predicts correctly.
+        
+    - [DATASET_NAME]_gnn_line_incorrect_base_correct: The commits JITGNN and JITLine predict incorrectly but Baseline predicts correctly.
+
+[DATASET_NAME] is either "apache" or "openstack".
+

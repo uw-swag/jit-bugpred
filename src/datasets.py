@@ -81,8 +81,8 @@ class ASTDataset(Dataset):
         vectorizer = CountVectorizer(lowercase=False, max_features=100000, binary=True)
         self.vectorizer_model = vectorizer.fit(corpus)
 
-        with open(os.path.join(BASE_PATH, 'trained_models/vectorizer.pkl'), 'wb') as fp:
-            pickle.dump(vectorizer, fp)
+        # with open(os.path.join(BASE_PATH, 'trained_models/vectorizer.pkl'), 'wb') as fp:
+        #     pickle.dump(vectorizer, fp)
 
     def set_mode(self, mode):
         self.mode = mode
