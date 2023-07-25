@@ -25,3 +25,5 @@ notfound.txt
 */logs
 logs
 repos
+data/**
+**/.DS_Store
